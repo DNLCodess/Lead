@@ -1,0 +1,191 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-sato);
+  --font-serif: var(--font-new);
+
+  /* =========================
+     PREMIUM BLACKS (Core Dark Mode)
+     ========================= */
+  --color-black-base: #0a0d12;
+  --color-black-surface: #11151c;
+  --color-black-elevated: #161b24;
+  --color-black-border: #232a3a;
+
+  /* =========================
+     WHITES (Text & UI - Dark Mode)
+     ========================= */
+  --color-white-primary: #e6e8ec;
+  --color-white-secondary: #a1a7b3;
+  --color-white-muted: #6b7280;
+
+  /* =========================
+     IMPROVED LIGHT MODE COLORS
+     (Avoiding all-white design with subtle depth)
+     ========================= */
+  --color-light-base: #f5f7fa;
+  --color-light-surface: #ffffff;
+  --color-light-elevated: #fafbfc;
+  --color-light-border: #d1d5db;
+  --color-light-accent-bg: #f0fdf4;
+
+  /* Light mode text (improved contrast) */
+  --color-dark-primary: #111827;
+  --color-dark-secondary: #374151;
+  --color-dark-muted: #6b7280;
+
+  /* =========================
+     GREENS (Accent & Action - Universal)
+     ========================= */
+  --color-green-primary: #1ed760;
+  --color-green-hover: #16b455;
+  --color-green-soft: #7ee2a8;
+  --color-green-dark: #145a32;
+  --color-green-light-bg: #ecfdf5;
+  --color-green-light-border: #a7f3d0;
+
+  /* =========================
+     GRADIENTS (Premium)
+     ========================= */
+  --gradient-black-ambient: linear-gradient(
+    180deg,
+    #0a0d12 0%,
+    #0e1218 50%,
+    #11151c 100%
+  );
+
+  --gradient-green-glow: radial-gradient(
+    circle at top right,
+    rgba(30, 215, 96, 0.28),
+    #0a0d12 65%
+  );
+
+  --gradient-hero: linear-gradient(
+    135deg,
+    #0a0d12 0%,
+    #11151c 60%,
+    #145a32 100%
+  );
+
+  --gradient-cta: linear-gradient(
+    135deg,
+    #1ed760 0%,
+    #16b455 50%,
+    #145a32 100%
+  );
+
+  /* Improved light mode gradients */
+  --gradient-light-ambient: linear-gradient(
+    180deg,
+    #f5f7fa 0%,
+    #ffffff 50%,
+    #fafbfc 100%
+  );
+
+  --gradient-light-green-glow: radial-gradient(
+    circle at top right,
+    rgba(30, 215, 96, 0.12),
+    #f5f7fa 65%
+  );
+
+  /* =========================
+     EXISTING TOKENS (unchanged)
+     ========================= */
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+}
+
+@layer utilities {
+  .font-satoshi {
+    font-family: var(--font-satoshi), ui-sans-serif, system-ui, sans-serif;
+  }
+
+  .font-news {
+    font-family: var(--font-news), ui-serif, Georgia, serif;
+  }
+}
+
+/* =========================
+   ROOT THEME VARIABLES
+   ========================= */
+:root {
+  /* Default to dark mode */
+  --background: var(--color-black-base);
+  --surface: var(--color-black-surface);
+  --elevated: var(--color-black-elevated);
+  --border-color: var(--color-black-border);
+  --text-primary: var(--color-white-primary);
+  --text-secondary: var(--color-white-secondary);
+  --text-muted: var(--color-white-muted);
+  --accent-bg: rgba(30, 215, 96, 0.1);
+}
+
+/* Light mode overrides - Improved with depth */
+:root:not(.dark) {
+  --background: var(--color-light-base);
+  --surface: var(--color-light-surface);
+  --elevated: var(--color-light-elevated);
+  --border-color: var(--color-light-border);
+  --text-primary: var(--color-dark-primary);
+  --text-secondary: var(--color-dark-secondary);
+  --text-muted: var(--color-dark-muted);
+  --accent-bg: var(--color-green-light-bg);
+}
+
+/* Smooth theme transition */
+* {
+  transition-property: background-color, border-color, color;
+  transition-duration: 200ms;
+  transition-timing-function: ease-in-out;
+}
+
+/* Light mode specific enhancements */
+:root:not(.dark) {
+  /* Add subtle shadows for depth in light mode */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+}
+
+:root.dark {
+  /* Dark mode shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.6);
+}
