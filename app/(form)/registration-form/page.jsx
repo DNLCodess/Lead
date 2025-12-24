@@ -13,9 +13,13 @@ import {
   ChevronLeft,
   MapPin,
   RefreshCw,
+  CreditCard,
+  DollarSign,
 } from "lucide-react";
 import Image from "next/image";
 import { useLocationDetection } from "@/utils/use-location";
+import { useInitializePayment } from "@/hooks/usePayment";
+import { FlutterwavePayment } from "@/components/shared/payment/flutter";
 
 // Shadcn UI Components
 import { Button } from "@/components/ui/button";
@@ -29,6 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const RegistrationForm = () => {
   const [formData, setFormData] = useState({
@@ -36,6 +41,7 @@ const RegistrationForm = () => {
     lastName: "",
     middleName: "",
     country: "",
+    detectedCountry: "",
     city: "",
     phoneNumber: "",
     telegramPhone: "",
@@ -50,10 +56,13 @@ const RegistrationForm = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [sameAsTelegram, setSameAsTelegram] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [locationDetected, setLocationDetected] = useState(false);
   const [hasRestoredData, setHasRestoredData] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [paymentPayload, setPaymentPayload] = useState(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState(null);
+  const [formErrors, setFormErrors] = useState({});
 
   // Location detection hook
   const {
@@ -63,43 +72,57 @@ const RegistrationForm = () => {
     isLoading: locationLoading,
   } = useLocationDetection();
 
-  const totalSteps = 3;
+  // Payment initialization hook
+  const {
+    mutate: initializePayment,
+    isPending: isInitializingPayment,
+    error: paymentError,
+  } = useInitializePayment();
+
+  const totalSteps = 4; // Added payment step
   const STORAGE_KEY = "registration_form_data";
   const STORAGE_STEP_KEY = "registration_form_step";
 
-  // Load saved form data from localStorage on mount - RUNS FIRST
+  // Calculate payment amount based on country
+  useEffect(() => {
+    const selectedCountry =
+      formData.country || formData.detectedCountry || "US";
+    if (selectedCountry.toUpperCase() === "NG") {
+      setPaymentAmount({ amount: 2000, currency: "NGN", symbol: "₦" });
+    } else {
+      setPaymentAmount({ amount: 5, currency: "USD", symbol: "$" });
+    }
+  }, [formData.country, formData.detectedCountry]);
+
+  // Load saved form data from localStorage on mount
   useEffect(() => {
     const loadSavedData = () => {
       try {
         const savedData = localStorage.getItem(STORAGE_KEY);
         const savedStep = localStorage.getItem(STORAGE_STEP_KEY);
 
-        console.log("Loading saved data:", savedData); // Debug log
-
         if (savedData) {
           const parsedData = JSON.parse(savedData);
 
-          // Restore form data
           setFormData({
             firstName: parsedData.firstName || "",
             lastName: parsedData.lastName || "",
             middleName: parsedData.middleName || "",
             country: parsedData.country || "",
+            detectedCountry: parsedData.detectedCountry || "",
             city: parsedData.city || "",
             phoneNumber: parsedData.phoneNumber || "",
             telegramPhone: parsedData.telegramPhone || "",
             email: parsedData.email || "",
-            password: "", // Never restore passwords
+            password: "",
             confirmPassword: "",
             profilePicture: null,
           });
 
-          // Restore preview image
           if (parsedData.previewImageData) {
             setPreviewImage(parsedData.previewImageData);
           }
 
-          // Restore telegram checkbox state
           if (parsedData.sameAsTelegram !== undefined) {
             setSameAsTelegram(parsedData.sameAsTelegram);
           }
@@ -118,11 +141,10 @@ const RegistrationForm = () => {
     };
 
     loadSavedData();
-  }, []); // Empty dependency array - only runs once on mount
+  }, []);
 
-  // Save form data to localStorage whenever it changes - RUNS AFTER RESTORATION
+  // Save form data to localStorage
   useEffect(() => {
-    // Don't save during initial load to avoid overwriting with empty values
     if (isInitialLoad) return;
 
     try {
@@ -131,6 +153,7 @@ const RegistrationForm = () => {
         lastName: formData.lastName,
         middleName: formData.middleName,
         country: formData.country,
+        detectedCountry: formData.detectedCountry,
         city: formData.city,
         phoneNumber: formData.phoneNumber,
         telegramPhone: formData.telegramPhone,
@@ -139,14 +162,13 @@ const RegistrationForm = () => {
         previewImageData: previewImage,
       };
 
-      console.log("Saving to localStorage:", dataToSave); // Debug log
       localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
     } catch (error) {
       console.error("Error saving form data:", error);
     }
   }, [formData, previewImage, sameAsTelegram, isInitialLoad]);
 
-  // Save current step to localStorage
+  // Save current step
   useEffect(() => {
     if (isInitialLoad) return;
 
@@ -157,7 +179,26 @@ const RegistrationForm = () => {
     }
   }, [currentStep, isInitialLoad]);
 
-  // Clear localStorage on successful submission
+  // Auto-fill location when detected
+  useEffect(() => {
+    if (
+      country &&
+      city &&
+      !locationDetected &&
+      !formData.country &&
+      !formData.city
+    ) {
+      setFormData((prev) => ({
+        ...prev,
+        country: country,
+        detectedCountry: country,
+        city: city,
+      }));
+      setLocationDetected(true);
+    }
+  }, [country, city, locationDetected, formData.country, formData.city]);
+
+  // Clear form storage
   const clearFormStorage = () => {
     try {
       localStorage.removeItem(STORAGE_KEY);
@@ -167,7 +208,7 @@ const RegistrationForm = () => {
     }
   };
 
-  // Manual clear function for user
+  // Manual clear function
   const handleClearProgress = () => {
     if (
       confirm(
@@ -180,6 +221,7 @@ const RegistrationForm = () => {
         lastName: "",
         middleName: "",
         country: "",
+        detectedCountry: "",
         city: "",
         phoneNumber: "",
         telegramPhone: "",
@@ -196,25 +238,6 @@ const RegistrationForm = () => {
     }
   };
 
-  // Auto-fill location when detected (only once, in the background)
-  useEffect(() => {
-    if (
-      country &&
-      city &&
-      !locationDetected &&
-      !formData.country &&
-      !formData.city
-    ) {
-      setFormData((prev) => ({
-        ...prev,
-        country: country,
-        city: city,
-      }));
-      setLocationDetected(true);
-    }
-  }, [country, city, locationDetected, formData.country, formData.city]);
-
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -244,6 +267,8 @@ const RegistrationForm = () => {
       ...prev,
       [name]: value,
     }));
+    // Clear error for this field
+    setFormErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const handleSelectChange = (name, value) => {
@@ -251,11 +276,30 @@ const RegistrationForm = () => {
       ...prev,
       [name]: value,
     }));
+    setFormErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setFormErrors((prev) => ({
+          ...prev,
+          profilePicture: "Image size must be less than 5MB",
+        }));
+        return;
+      }
+
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        setFormErrors((prev) => ({
+          ...prev,
+          profilePicture: "Please upload a valid image file",
+        }));
+        return;
+      }
+
       setFormData((prev) => ({
         ...prev,
         profilePicture: file,
@@ -265,6 +309,7 @@ const RegistrationForm = () => {
         setPreviewImage(reader.result);
       };
       reader.readAsDataURL(file);
+      setFormErrors((prev) => ({ ...prev, profilePicture: "" }));
     }
   };
 
@@ -283,9 +328,69 @@ const RegistrationForm = () => {
     }
   };
 
+  // Validation functions
+  const validateStep = (step) => {
+    const errors = {};
+
+    switch (step) {
+      case 1:
+        if (!formData.firstName.trim()) {
+          errors.firstName = "First name is required";
+        }
+        if (!formData.lastName.trim()) {
+          errors.lastName = "Last name is required";
+        }
+        if (!formData.email.trim()) {
+          errors.email = "Email is required";
+        } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+          errors.email = "Please enter a valid email address";
+        }
+        break;
+
+      case 2:
+        if (!formData.country) {
+          errors.country = "Please select a country";
+        }
+        if (!formData.city.trim()) {
+          errors.city = "City is required";
+        }
+        if (!formData.phoneNumber.trim()) {
+          errors.phoneNumber = "Phone number is required";
+        }
+        if (!sameAsTelegram && !formData.telegramPhone.trim()) {
+          errors.telegramPhone = "Telegram phone number is required";
+        }
+        break;
+
+      case 3:
+        if (!formData.password) {
+          errors.password = "Password is required";
+        } else if (formData.password.length < 8) {
+          errors.password = "Password must be at least 8 characters";
+        } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
+          errors.password =
+            "Password must contain uppercase, lowercase, and numbers";
+        }
+        if (!formData.confirmPassword) {
+          errors.confirmPassword = "Please confirm your password";
+        } else if (formData.password !== formData.confirmPassword) {
+          errors.confirmPassword = "Passwords do not match";
+        }
+        break;
+
+      default:
+        break;
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const nextStep = () => {
-    if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
+    if (validateStep(currentStep)) {
+      if (currentStep < totalSteps) {
+        setCurrentStep(currentStep + 1);
+      }
     }
   };
 
@@ -295,27 +400,46 @@ const RegistrationForm = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    // Submission logic here
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      console.log("Form submitted:", formData);
-
-      // Clear saved data on successful submission
-      clearFormStorage();
-
-      // You can redirect or show success message here
-      // router.push('/success');
-    } catch (error) {
-      console.error("Submission error:", error);
-    } finally {
-      setIsSubmitting(false);
+  // Handle payment initialization
+  const handleInitializePayment = () => {
+    // Final validation
+    if (!validateStep(3)) {
+      setCurrentStep(3);
+      return;
     }
+
+    initializePayment(formData, {
+      onSuccess: (data) => {
+        setPaymentPayload(data.paymentPayload);
+        setShowPaymentModal(true);
+      },
+      onError: (error) => {
+        console.error("Payment initialization failed:", error);
+      },
+    });
+  };
+
+  // Payment callbacks
+  const handlePaymentSuccess = (response) => {
+    console.log("Payment successful:", response);
+    setShowPaymentModal(false);
+    // Redirect will be handled by the verify-payment page
+    window.location.href = `/verify-payment?transaction_id=${response.transaction_id}&tx_ref=${response.tx_ref}&status=${response.status}`;
+  };
+
+  const handlePaymentClose = () => {
+    setShowPaymentModal(false);
+    setPaymentPayload(null);
+  };
+
+  const handlePaymentError = (error) => {
+    console.error("Payment error:", error);
+    setShowPaymentModal(false);
+    setPaymentPayload(null);
+    setFormErrors((prev) => ({
+      ...prev,
+      payment: error.message || "Payment failed. Please try again.",
+    }));
   };
 
   const renderStepContent = () => {
@@ -395,6 +519,12 @@ const RegistrationForm = () => {
               </div>
             </motion.div>
 
+            {formErrors.profilePicture && (
+              <p className="text-sm text-red-500 text-center -mt-4">
+                {formErrors.profilePicture}
+              </p>
+            )}
+
             {/* Name Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <motion.div variants={itemVariants} className="space-y-2.5">
@@ -411,10 +541,15 @@ const RegistrationForm = () => {
                   value={formData.firstName}
                   onChange={handleInputChange}
                   placeholder="John"
-                  className="h-12 bg-[var(--elevated)] border-[var(--border-color)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--color-green-primary)] focus:ring-1 focus:ring-[var(--color-green-primary)]/50 transition-all duration-200"
+                  className={`h-12 bg-[var(--elevated)] border-[var(--border-color)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--color-green-primary)] focus:ring-1 focus:ring-[var(--color-green-primary)]/50 transition-all duration-200 ${
+                    formErrors.firstName ? "border-red-500" : ""
+                  }`}
                   style={{ boxShadow: "var(--shadow-sm)" }}
                   required
                 />
+                {formErrors.firstName && (
+                  <p className="text-sm text-red-500">{formErrors.firstName}</p>
+                )}
               </motion.div>
 
               <motion.div variants={itemVariants} className="space-y-2.5">
@@ -431,10 +566,15 @@ const RegistrationForm = () => {
                   value={formData.lastName}
                   onChange={handleInputChange}
                   placeholder="Doe"
-                  className="h-12 bg-[var(--elevated)] border-[var(--border-color)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--color-green-primary)] focus:ring-1 focus:ring-[var(--color-green-primary)]/50 transition-all duration-200"
+                  className={`h-12 bg-[var(--elevated)] border-[var(--border-color)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--color-green-primary)] focus:ring-1 focus:ring-[var(--color-green-primary)]/50 transition-all duration-200 ${
+                    formErrors.lastName ? "border-red-500" : ""
+                  }`}
                   style={{ boxShadow: "var(--shadow-sm)" }}
                   required
                 />
+                {formErrors.lastName && (
+                  <p className="text-sm text-red-500">{formErrors.lastName}</p>
+                )}
               </motion.div>
             </div>
 
@@ -474,10 +614,15 @@ const RegistrationForm = () => {
                 value={formData.email}
                 onChange={handleInputChange}
                 placeholder="john.doe@example.com"
-                className="h-12 bg-[var(--elevated)] border-[var(--border-color)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--color-green-primary)] focus:ring-1 focus:ring-[var(--color-green-primary)]/50 transition-all duration-200"
+                className={`h-12 bg-[var(--elevated)] border-[var(--border-color)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--color-green-primary)] focus:ring-1 focus:ring-[var(--color-green-primary)]/50 transition-all duration-200 ${
+                  formErrors.email ? "border-red-500" : ""
+                }`}
                 style={{ boxShadow: "var(--shadow-sm)" }}
                 required
               />
+              {formErrors.email && (
+                <p className="text-sm text-red-500">{formErrors.email}</p>
+              )}
             </motion.div>
           </motion.div>
         );
@@ -540,7 +685,9 @@ const RegistrationForm = () => {
                   }
                 >
                   <SelectTrigger
-                    className="h-12 bg-[var(--elevated)] border-[var(--border-color)] text-[var(--text-primary)] focus:border-[var(--color-green-primary)] focus:ring-1 focus:ring-[var(--color-green-primary)]/50"
+                    className={`h-12 bg-[var(--elevated)] border-[var(--border-color)] text-[var(--text-primary)] focus:border-[var(--color-green-primary)] focus:ring-1 focus:ring-[var(--color-green-primary)]/50 ${
+                      formErrors.country ? "border-red-500" : ""
+                    }`}
                     style={{ boxShadow: "var(--shadow-sm)" }}
                   >
                     <SelectValue placeholder="Select country" />
@@ -566,6 +713,9 @@ const RegistrationForm = () => {
                     <SelectItem value="ae">🇦🇪 UAE</SelectItem>
                   </SelectContent>
                 </Select>
+                {formErrors.country && (
+                  <p className="text-sm text-red-500">{formErrors.country}</p>
+                )}
               </motion.div>
 
               <motion.div variants={itemVariants} className="space-y-2.5">
@@ -585,10 +735,15 @@ const RegistrationForm = () => {
                   value={formData.city}
                   onChange={handleInputChange}
                   placeholder="New York"
-                  className="h-12 bg-[var(--elevated)] border-[var(--border-color)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--color-green-primary)] focus:ring-1 focus:ring-[var(--color-green-primary)]/50 transition-all duration-200"
+                  className={`h-12 bg-[var(--elevated)] border-[var(--border-color)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--color-green-primary)] focus:ring-1 focus:ring-[var(--color-green-primary)]/50 transition-all duration-200 ${
+                    formErrors.city ? "border-red-500" : ""
+                  }`}
                   style={{ boxShadow: "var(--shadow-sm)" }}
                   required
                 />
+                {formErrors.city && (
+                  <p className="text-sm text-red-500">{formErrors.city}</p>
+                )}
               </motion.div>
             </div>
 
@@ -607,10 +762,15 @@ const RegistrationForm = () => {
                 value={formData.phoneNumber}
                 onChange={handleInputChange}
                 placeholder="+1 (555) 000-0000"
-                className="h-12 bg-[var(--elevated)] border-[var(--border-color)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--color-green-primary)] focus:ring-1 focus:ring-[var(--color-green-primary)]/50 transition-all duration-200"
+                className={`h-12 bg-[var(--elevated)] border-[var(--border-color)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--color-green-primary)] focus:ring-1 focus:ring-[var(--color-green-primary)]/50 transition-all duration-200 ${
+                  formErrors.phoneNumber ? "border-red-500" : ""
+                }`}
                 style={{ boxShadow: "var(--shadow-sm)" }}
                 required
               />
+              {formErrors.phoneNumber && (
+                <p className="text-sm text-red-500">{formErrors.phoneNumber}</p>
+              )}
             </motion.div>
 
             <motion.div variants={itemVariants} className="space-y-4">
@@ -653,10 +813,17 @@ const RegistrationForm = () => {
                     value={formData.telegramPhone}
                     onChange={handleInputChange}
                     placeholder="+1 (555) 000-0000"
-                    className="h-12 bg-[var(--elevated)] border-[var(--border-color)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--color-green-primary)] focus:ring-1 focus:ring-[var(--color-green-primary)]/50 transition-all duration-200"
+                    className={`h-12 bg-[var(--elevated)] border-[var(--border-color)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--color-green-primary)] focus:ring-1 focus:ring-[var(--color-green-primary)]/50 transition-all duration-200 ${
+                      formErrors.telegramPhone ? "border-red-500" : ""
+                    }`}
                     style={{ boxShadow: "var(--shadow-sm)" }}
                     required={!sameAsTelegram}
                   />
+                  {formErrors.telegramPhone && (
+                    <p className="text-sm text-red-500">
+                      {formErrors.telegramPhone}
+                    </p>
+                  )}
                 </motion.div>
               )}
 
@@ -705,7 +872,9 @@ const RegistrationForm = () => {
                   value={formData.password}
                   onChange={handleInputChange}
                   placeholder="Create a strong password"
-                  className="h-12 pr-12 bg-[var(--elevated)] border-[var(--border-color)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--color-green-primary)] focus:ring-1 focus:ring-[var(--color-green-primary)]/50 transition-all duration-200"
+                  className={`h-12 pr-12 bg-[var(--elevated)] border-[var(--border-color)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--color-green-primary)] focus:ring-1 focus:ring-[var(--color-green-primary)]/50 transition-all duration-200 ${
+                    formErrors.password ? "border-red-500" : ""
+                  }`}
                   style={{ boxShadow: "var(--shadow-sm)" }}
                   required
                 />
@@ -723,11 +892,15 @@ const RegistrationForm = () => {
                   )}
                 </Button>
               </div>
-              <p className="text-xs text-[var(--text-muted)] flex items-center gap-1.5">
-                <span className="w-1 h-1 bg-[var(--color-green-primary)] rounded-full" />
-                Must be at least 8 characters with uppercase, lowercase, and
-                numbers
-              </p>
+              {formErrors.password ? (
+                <p className="text-sm text-red-500">{formErrors.password}</p>
+              ) : (
+                <p className="text-xs text-[var(--text-muted)] flex items-center gap-1.5">
+                  <span className="w-1 h-1 bg-[var(--color-green-primary)] rounded-full" />
+                  Must be at least 8 characters with uppercase, lowercase, and
+                  numbers
+                </p>
+              )}
             </motion.div>
 
             <motion.div variants={itemVariants} className="space-y-2.5">
@@ -746,7 +919,9 @@ const RegistrationForm = () => {
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
                   placeholder="Re-enter your password"
-                  className="h-12 pr-12 bg-[var(--elevated)] border-[var(--border-color)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--color-green-primary)] focus:ring-1 focus:ring-[var(--color-green-primary)]/50 transition-all duration-200"
+                  className={`h-12 pr-12 bg-[var(--elevated)] border-[var(--border-color)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--color-green-primary)] focus:ring-1 focus:ring-[var(--color-green-primary)]/50 transition-all duration-200 ${
+                    formErrors.confirmPassword ? "border-red-500" : ""
+                  }`}
                   style={{ boxShadow: "var(--shadow-sm)" }}
                   required
                 />
@@ -764,6 +939,11 @@ const RegistrationForm = () => {
                   )}
                 </Button>
               </div>
+              {formErrors.confirmPassword && (
+                <p className="text-sm text-red-500">
+                  {formErrors.confirmPassword}
+                </p>
+              )}
             </motion.div>
 
             <motion.div
@@ -793,7 +973,7 @@ const RegistrationForm = () => {
                     Location:
                   </span>
                   <span className="font-medium text-[var(--text-primary)]">
-                    {formData.city}, {formData.country}
+                    {formData.city}, {formData.country.toUpperCase()}
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-2">
@@ -807,6 +987,116 @@ const RegistrationForm = () => {
           </motion.div>
         );
 
+      case 4:
+        return (
+          <motion.div
+            key="step4"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="space-y-6"
+          >
+            {/* Payment Error */}
+            {formErrors.payment && (
+              <Alert variant="destructive">
+                <AlertTitle>Payment Error</AlertTitle>
+                <AlertDescription>{formErrors.payment}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Payment Summary */}
+            <motion.div
+              variants={itemVariants}
+              className="p-8 bg-gradient-to-br from-[var(--color-green-primary)]/10 to-transparent border-2 border-[var(--color-green-primary)]/30 rounded-2xl"
+              style={{ boxShadow: "var(--shadow-lg)" }}
+            >
+              <div className="flex items-center justify-center mb-6">
+                <div className="w-16 h-16 bg-[var(--color-green-primary)]/20 rounded-full flex items-center justify-center">
+                  <CreditCard className="w-8 h-8 text-[var(--color-green-primary)]" />
+                </div>
+              </div>
+
+              <h3 className="text-2xl font-bold text-center text-[var(--text-primary)] mb-2">
+                Registration Fee
+              </h3>
+              <p className="text-center text-[var(--text-secondary)] mb-8">
+                Complete payment to finalize your registration
+              </p>
+
+              <div className="bg-[var(--elevated)] rounded-xl p-6 mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[var(--text-secondary)]">
+                    Registration Type:
+                  </span>
+                  <span className="font-semibold text-[var(--text-primary)]">
+                    Student Account
+                  </span>
+                </div>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[var(--text-secondary)]">
+                    Location:
+                  </span>
+                  <span className="font-semibold text-[var(--text-primary)]">
+                    {formData.city}, {formData.country.toUpperCase()}
+                  </span>
+                </div>
+                <div className="h-px bg-[var(--border-color)] my-4" />
+                <div className="flex items-center justify-between">
+                  <span className="text-lg font-semibold text-[var(--text-primary)]">
+                    Total Amount:
+                  </span>
+                  <span className="text-3xl font-bold text-[var(--color-green-primary)] flex items-center gap-1">
+                    {paymentAmount?.symbol}
+                    {paymentAmount?.amount.toLocaleString()}
+                    <span className="text-sm font-normal text-[var(--text-secondary)]">
+                      {paymentAmount?.currency}
+                    </span>
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-3 text-sm text-[var(--text-secondary)]">
+                <div className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-[var(--color-green-primary)] mt-0.5 flex-shrink-0" />
+                  <span>Secure payment processing via Flutterwave</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-[var(--color-green-primary)] mt-0.5 flex-shrink-0" />
+                  <span>One-time registration fee</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-[var(--color-green-primary)] mt-0.5 flex-shrink-0" />
+                  <span>Instant account activation after payment</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-[var(--color-green-primary)] mt-0.5 flex-shrink-0" />
+                  <span>Full access to all platform features</span>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Payment Methods Info */}
+            <motion.div
+              variants={itemVariants}
+              className="p-4 bg-[var(--elevated)] border border-[var(--border-color)] rounded-lg"
+            >
+              <h4 className="font-semibold text-[var(--text-primary)] mb-3">
+                Accepted Payment Methods:
+              </h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+                  <CreditCard className="w-4 h-4" />
+                  <span>Card</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+                  <DollarSign className="w-4 h-4" />
+                  <span>Bank Transfer</span>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        );
+
       default:
         return null;
     }
@@ -814,7 +1104,17 @@ const RegistrationForm = () => {
 
   return (
     <div className="min-h-screen bg-[var(--background)] flex items-center justify-center p-4 overflow-hidden relative">
-      {/* Premium ambient glow - adjusted for light mode */}
+      {/* Flutterwave Payment Modal */}
+      {showPaymentModal && paymentPayload && (
+        <FlutterwavePayment
+          paymentPayload={paymentPayload}
+          onSuccess={handlePaymentSuccess}
+          onClose={handlePaymentClose}
+          onError={handlePaymentError}
+        />
+      )}
+
+      {/* Premium ambient glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
           animate={{
@@ -876,17 +1176,21 @@ const RegistrationForm = () => {
               </motion.div>
               <div className="text-center">
                 <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-2">
-                  Create Your Account
+                  {currentStep === 4
+                    ? "Complete Payment"
+                    : "Create Your Account"}
                 </h1>
                 <p className="text-[var(--text-secondary)]">
-                  Join us and start your journey today
+                  {currentStep === 4
+                    ? "Secure your spot with a one-time payment"
+                    : "Join us and start your journey today"}
                 </p>
               </div>
             </motion.div>
 
             {/* Progress Steps */}
             <div className="flex items-center justify-center mt-8 space-x-3">
-              {[1, 2, 3].map((step) => (
+              {[1, 2, 3, 4].map((step) => (
                 <div key={step} className="flex items-center">
                   <motion.div
                     initial={false}
@@ -923,7 +1227,7 @@ const RegistrationForm = () => {
                       />
                     )}
                   </motion.div>
-                  {step < 3 && (
+                  {step < 4 && (
                     <motion.div
                       initial={false}
                       animate={{
@@ -942,73 +1246,75 @@ const RegistrationForm = () => {
           </div>
 
           {/* Form Content */}
-          <form onSubmit={handleSubmit}>
-            <div className="p-8 min-h-[480px]">
-              <AnimatePresence mode="wait">
-                {renderStepContent()}
-              </AnimatePresence>
-            </div>
-
-            {/* Navigation Buttons */}
-            <div className="p-8 pt-0 flex items-center justify-between gap-4">
-              {currentStep > 1 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={prevStep}
-                  className="h-12 px-6 bg-[var(--elevated)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--border-color)]/30 hover:border-[var(--color-green-primary)]/40 transition-all duration-200"
-                  style={{ boxShadow: "var(--shadow-sm)" }}
-                >
-                  <ChevronLeft className="w-4 h-4 mr-2" />
-                  Previous
-                </Button>
-              )}
-
-              {currentStep < totalSteps ? (
-                <Button
-                  type="button"
-                  onClick={nextStep}
-                  className="h-12 px-8 ml-auto bg-[var(--color-green-primary)] hover:bg-[var(--color-green-hover)] text-white font-semibold transition-all duration-200"
-                  style={{ boxShadow: "0 4px 14px 0 rgba(30, 215, 96, 0.39)" }}
-                >
-                  Continue
-                  <ChevronRight className="w-4 h-4 ml-2" />
-                </Button>
-              ) : (
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="h-12 px-8 ml-auto bg-[var(--color-green-primary)] hover:bg-[var(--color-green-hover)] text-white font-semibold transition-all duration-200 disabled:opacity-50"
-                  style={{ boxShadow: "0 4px 14px 0 rgba(30, 215, 96, 0.39)" }}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Creating Account...
-                    </>
-                  ) : (
-                    <>
-                      Create Account
-                      <Check className="w-4 h-4 ml-2" />
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
-          </form>
-
-          {/* Footer */}
-          <div className="px-8 pb-8 text-center border-t border-[var(--border-color)] pt-6">
-            <p className="text-sm text-[var(--text-secondary)]">
-              Already have an account?{" "}
-              <a
-                href="/login"
-                className="text-[var(--color-green-primary)] font-medium hover:text-[var(--color-green-soft)] transition-colors duration-200"
-              >
-                Sign in
-              </a>
-            </p>
+          <div className="p-8 min-h-[480px]">
+            <AnimatePresence mode="wait">{renderStepContent()}</AnimatePresence>
           </div>
+
+          {/* Navigation Buttons */}
+          <div className="p-8 pt-0 flex items-center justify-between gap-4">
+            {currentStep > 1 && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={prevStep}
+                disabled={isInitializingPayment}
+                className="h-12 px-6 bg-[var(--elevated)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--border-color)]/30 hover:border-[var(--color-green-primary)]/40 transition-all duration-200"
+                style={{ boxShadow: "var(--shadow-sm)" }}
+              >
+                <ChevronLeft className="w-4 h-4 mr-2" />
+                Previous
+              </Button>
+            )}
+
+            {currentStep < totalSteps ? (
+              <Button
+                type="button"
+                onClick={nextStep}
+                className="h-12 px-8 ml-auto bg-[var(--color-green-primary)] hover:bg-[var(--color-green-hover)] text-white font-semibold transition-all duration-200"
+                style={{
+                  boxShadow: "0 4px 14px 0 rgba(30, 215, 96, 0.39)",
+                }}
+              >
+                Continue
+                <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                onClick={handleInitializePayment}
+                disabled={isInitializingPayment}
+                className="h-12 px-8 ml-auto bg-[var(--color-green-primary)] hover:bg-[var(--color-green-hover)] text-white font-semibold transition-all duration-200 disabled:opacity-50"
+                style={{
+                  boxShadow: "0 4px 14px 0 rgba(30, 215, 96, 0.39)",
+                }}
+              >
+                {isInitializingPayment ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    Proceed to Payment
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-6 text-center">
+          <p className="text-sm text-[var(--text-secondary)]">
+            Already have an account?{" "}
+            <a
+              href="/login"
+              className="text-[var(--color-green-primary)] font-medium hover:text-[var(--color-green-soft)] transition-colors duration-200"
+            >
+              Sign in
+            </a>
+          </p>
         </div>
       </motion.div>
     </div>

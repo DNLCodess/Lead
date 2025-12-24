@@ -6,5 +6,5 @@ export const metadata = {
 };
 
 export default function ClassLayout({ children }) {
-  return { children };
+  return children;
 }
