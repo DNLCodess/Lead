@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AuthService } from "@/lib/services/auth-service";
 import { useRouter } from "next/navigation";
+import { useUserStore } from "@/lib/store/userStore";
+import { useEffect } from "react";
 
 /**
  * Hook for user registration
@@ -8,6 +10,7 @@ import { useRouter } from "next/navigation";
 export function useRegistration() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { setUser } = useUserStore();
 
   return useMutation({
     mutationFn: (registrationData) =>
@@ -36,8 +39,7 @@ export function useSignIn() {
     mutationFn: ({ email, password }) => AuthService.signIn(email, password),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["auth"] });
-      queryClient.invalidateQueries({ queryKey: ["student"] });
-      router.push("/dashboard");
+      queryClient.invalidateQueries({ queryKey: ["student", "current"] });
     },
     onError: (error) => {
       console.error("Sign in failed:", error);
@@ -66,7 +68,7 @@ export function useSignOut() {
  */
 export function useStudent() {
   return useQuery({
-    queryKey: ["student"],
+    queryKey: ["student", "current"],
     queryFn: () => AuthService.getCurrentStudent(),
     retry: 1,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -83,7 +85,7 @@ export function useUpdateStudent() {
     mutationFn: (updates) => AuthService.updateStudent(updates),
     onSuccess: (data) => {
       queryClient.setQueryData(["student"], data);
-      queryClient.invalidateQueries({ queryKey: ["student"] });
+      queryClient.invalidateQueries({ queryKey: ["student", "current"] });
     },
   });
 }

@@ -650,7 +650,7 @@ const RegistrationForm = () => {
               </motion.div>
             )}
 
-            {locationDetected && (
+            {/* {locationDetected && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -664,7 +664,7 @@ const RegistrationForm = () => {
                   {countryName}, {city}
                 </p>
               </motion.div>
-            )}
+            )} */}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <motion.div variants={itemVariants} className="space-y-2.5">

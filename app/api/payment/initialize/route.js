@@ -18,7 +18,7 @@ function getPaymentAmount(countryCode) {
 }
 
 function generateTxRef() {
-  return `MOSTORE-REG-${Date.now()}-${Math.random()
+  return `LEAD-REG-${Date.now()}-${Math.random()
     .toString(36)
     .substr(2, 9)
     .toUpperCase()}`;
@@ -94,7 +94,7 @@ export async function POST(request) {
         name: `${firstName} ${lastName}`,
       },
       customizations: {
-        title: "MOSTORE Registration Fee",
+        title: "LEAD Registration Fee",
         description: "One-time registration payment",
         logo: `${
           process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"

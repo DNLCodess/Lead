@@ -1,19 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { CheckCircle2, XCircle, Loader2, AlertCircle } from "lucide-react";
 import { PaymentService } from "@/lib/services/payment-service";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase/client";
+import WelcomeToLead from "@/components/common/welcome";
 
 export default function VerifyPaymentPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [verificationStatus, setVerificationStatus] = useState("verifying");
   const [message, setMessage] = useState("Verifying your payment...");
   const [errorDetails, setErrorDetails] = useState(null);
+  const [showWelcome, setShowWelcome] = useState(false);
 
   useEffect(() => {
     const verifyAndRegister = async () => {
@@ -97,8 +98,9 @@ export default function VerifyPaymentPage() {
               });
 
               if (!error) {
+                // Show welcome screen after successful auth
                 setTimeout(() => {
-                  router.push("/dashboard");
+                  setShowWelcome(true);
                 }, 2000);
                 return;
               }
@@ -108,9 +110,9 @@ export default function VerifyPaymentPage() {
           }
         }
 
-        // Fallback: redirect to login
+        // If auto sign-in failed, still show welcome but user will need to log in later
         setTimeout(() => {
-          router.push("/login");
+          setShowWelcome(true);
         }, 2000);
       } catch (error) {
         console.error("Verification/Registration error:", error);
@@ -123,8 +125,14 @@ export default function VerifyPaymentPage() {
     };
 
     verifyAndRegister();
-  }, [searchParams, router]);
+  }, [searchParams]);
 
+  // Show welcome component after successful registration
+  if (showWelcome) {
+    return <WelcomeToLead />;
+  }
+
+  // Show verification status
   return (
     <div className="min-h-screen bg-[var(--background)] flex items-center justify-center p-4">
       <motion.div
@@ -177,7 +185,7 @@ export default function VerifyPaymentPage() {
         {verificationStatus === "failed" && (
           <div className="space-y-3">
             <Button
-              onClick={() => router.push("/registration-form")}
+              onClick={() => (window.location.href = "/registration-form")}
               className="w-full bg-[var(--color-green-primary)] hover:bg-[var(--color-green-hover)] text-white"
             >
               Try Again
