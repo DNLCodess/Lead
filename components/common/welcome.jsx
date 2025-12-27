@@ -141,7 +141,7 @@ export default function WelcomeToLead() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7 + index * 0.1 }}
-              className="group bg-[var(--surface)] rounded-2xl border border-[var(--border-color)] p-6 hover:border-[var(--color-green-primary)]/30 transition-all shadow-[var(--shadow-md)]"
+              className="group bg-surface rounded-2xl border border-[var(--border-color)] p-6 hover:border-[var(--color-green-primary)]/30 transition-all shadow-[var(--shadow-md)]"
             >
               <div className="w-12 h-12 rounded-xl bg-[var(--color-green-primary)]/10 flex items-center justify-center mb-4 group-hover:bg-[var(--color-green-primary)]/20 transition-colors">
                 <feature.icon className="w-6 h-6 text-[var(--color-green-primary)]" />
@@ -165,7 +165,7 @@ export default function WelcomeToLead() {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.8 }}
-            className="bg-[var(--surface)] rounded-2xl border border-[var(--border-color)] p-8 shadow-[var(--shadow-lg)]"
+            className="bg-surface rounded-2xl border border-[var(--border-color)] p-8 shadow-[var(--shadow-lg)]"
           >
             <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-6">
               Program Mission
@@ -214,7 +214,7 @@ export default function WelcomeToLead() {
             className="space-y-6"
           >
             {/* Class Schedule */}
-            <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border-color)] p-8 shadow-[var(--shadow-lg)]">
+            <div className="bg-surface rounded-2xl border border-[var(--border-color)] p-8 shadow-[var(--shadow-lg)]">
               <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-6">
                 Class Schedule
               </h2>
@@ -267,7 +267,7 @@ export default function WelcomeToLead() {
             </div>
 
             {/* Commitments */}
-            <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border-color)] p-8 shadow-[var(--shadow-lg)]">
+            <div className="bg-surface rounded-2xl border border-[var(--border-color)] p-8 shadow-[var(--shadow-lg)]">
               <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-6">
                 Your Commitments
               </h2>

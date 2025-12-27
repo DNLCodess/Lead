@@ -138,7 +138,7 @@ export default function VerifyPaymentPage() {
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="max-w-md w-full bg-[var(--surface)] rounded-2xl border border-[var(--border-color)] p-8 text-center"
+        className="max-w-md w-full bg-surface rounded-2xl border border-[var(--border-color)] p-8 text-center"
         style={{ boxShadow: "var(--shadow-xl)" }}
       >
         {verificationStatus === "verifying" && (

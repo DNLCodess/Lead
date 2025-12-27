@@ -692,7 +692,7 @@ const RegistrationForm = () => {
                   >
                     <SelectValue placeholder="Select country" />
                   </SelectTrigger>
-                  <SelectContent className="bg-[var(--surface)] border-[var(--border-color)] text-[var(--text-primary)]">
+                  <SelectContent className="bg-surface border-[var(--border-color)] text-[var(--text-primary)]">
                     <SelectItem value="us">🇺🇸 United States</SelectItem>
                     <SelectItem value="uk">🇬🇧 United Kingdom</SelectItem>
                     <SelectItem value="ca">🇨🇦 Canada</SelectItem>
@@ -1150,7 +1150,7 @@ const RegistrationForm = () => {
       >
         {/* Card Container */}
         <div
-          className="bg-[var(--surface)] rounded-2xl border border-[var(--border-color)] overflow-hidden"
+          className="bg-surface rounded-2xl border border-[var(--border-color)] overflow-hidden"
           style={{ boxShadow: "var(--shadow-xl)" }}
         >
           {/* Header with Logo */}
@@ -1163,14 +1163,13 @@ const RegistrationForm = () => {
             >
               <motion.div
                 whileHover={{ rotate: 5, scale: 1.05 }}
-                className="relative w-20 h-20 rounded-xl bg-[var(--background)] p-3 border border-[var(--border-color)]"
-                style={{ boxShadow: "var(--shadow-md)" }}
+                className="relative w-32 h-32 "
               >
                 <Image
-                  src="/logo.png"
+                  src="/logo-dark.png"
                   alt="Logo"
                   fill
-                  className="object-contain p-1"
+                  className="object-contain "
                   priority
                 />
               </motion.div>

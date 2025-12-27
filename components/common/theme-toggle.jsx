@@ -42,7 +42,7 @@ const FloatingThemeToggleExpanded = ({ position = "bottom-right" }) => {
         aria-label="Toggle theme"
       >
         {/* Background */}
-        <div className="absolute inset-0 bg-[var(--surface)] border-2 border-[var(--border-color)] rounded-full shadow-2xl" />
+        <div className="absolute inset-0 bg-surface border-2 border-[var(--border-color)] rounded-full shadow-2xl" />
 
         {/* Gradient overlay */}
         <motion.div
