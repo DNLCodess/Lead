@@ -4,8 +4,6 @@ import { createContext, useContext, useEffect, useState } from "react";
 
 const ThemeContext = createContext({
   theme: "dark",
-  toggleTheme: () => {},
-  setTheme: (theme) => {},
 });
 
 export const useTheme = () => {
@@ -17,46 +15,23 @@ export const useTheme = () => {
 };
 
 export function ThemeProvider({ children }) {
-  const [theme, setThemeState] = useState("dark");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    // Get theme from localStorage or system preference
-    const storedTheme = localStorage.getItem("theme");
 
-    const initialTheme = storedTheme;
-    setThemeState(initialTheme);
+    // Force dark mode always
+    document.documentElement.classList.add("dark");
 
-    // Apply theme to document
-    if (initialTheme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else {
-    }
+    // Optional: prevent any external override
+    document.documentElement.style.colorScheme = "dark";
   }, []);
 
-  const setTheme = (newTheme) => {
-    setThemeState(newTheme);
-    localStorage.setItem("theme", newTheme);
-
-    if (newTheme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else {
-    }
-  };
-
-  const toggleTheme = () => {
-    const newTheme = theme === "light" ? "dark" : "light";
-    setTheme(newTheme);
-  };
-
-  // Prevent flash of unstyled content
-  if (!mounted) {
-    return null;
-  }
+  // Prevent hydration / FOUC issues
+  if (!mounted) return null;
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
+    <ThemeContext.Provider value={{ theme: "dark" }}>
       {children}
     </ThemeContext.Provider>
   );
