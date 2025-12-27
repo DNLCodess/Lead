@@ -32,7 +32,6 @@ export function ThemeProvider({ children }) {
     if (initialTheme === "dark") {
       document.documentElement.classList.add("dark");
     } else {
-      document.documentElement.classList.remove("dark");
     }
   }, []);
 
@@ -43,7 +42,6 @@ export function ThemeProvider({ children }) {
     if (newTheme === "dark") {
       document.documentElement.classList.add("dark");
     } else {
-      document.documentElement.classList.remove("dark");
     }
   };
 
