@@ -25,7 +25,7 @@ export default function RootLayout({ children }) {
       <body className={`${news.variable} ${satoshi.variable} antialiased`}>
         <Providers>
           {children}
-          {/* <FloatingThemeToggleExpanded position="bottom-left" /> */}
+          <FloatingThemeToggleExpanded position="bottom-left" />
         </Providers>
       </body>
     </html>
