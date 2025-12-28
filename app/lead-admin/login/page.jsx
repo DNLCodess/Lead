@@ -6,6 +6,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useAdminAuth } from "@/hooks/use-admin-auth";
 import { Shield, Lock, Mail, Eye, EyeOff } from "lucide-react";
+import Image from "next/image";
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
@@ -46,14 +47,18 @@ export default function AdminLoginPage() {
           transition={{ delay: 0.1 }}
           className="text-center mb-8"
         >
-          <div
-            className="inline-flex items-center justify-center w-20 h-20 rounded-2xl mb-4"
-            style={{
-              background: "linear-gradient(135deg, #1ed760, #16b455)",
-            }}
+          <motion.div
+            whileHover={{ rotate: 5, scale: 1.05 }}
+            className="relative w-32 h-32 mx-auto"
           >
-            <Shield className="w-10 h-10 text-white" />
-          </div>
+            <Image
+              src="/logo-dark.png"
+              alt="Logo"
+              fill
+              className="object-contain "
+              priority
+            />
+          </motion.div>
           <h1
             className="text-4xl font-bold mb-2"
             style={{
@@ -257,7 +262,7 @@ export default function AdminLoginPage() {
           className="text-center mt-6 text-sm"
           style={{ color: "var(--text-muted)" }}
         >
-          LEAD Program © 2024 • Leadership Earned After Discipleship
+          LEAD Program © 2025 • Leadership Earned After Discipleship
         </p>
       </motion.div>
     </div>

@@ -190,15 +190,6 @@ export default function WeekDetailModal({ weekNumber, profile, isUnlocked }) {
                   Unlock this week to access the content and join the Telegram
                   group
                 </p>
-                <button
-                  className="px-8 py-3 rounded-xl font-semibold transition-all hover:scale-105"
-                  style={{
-                    background: "linear-gradient(135deg, #1ed760, #16b455)",
-                    color: "#ffffff",
-                  }}
-                >
-                  Unlock Week {weekNumber}
-                </button>
               </motion.div>
             ) : (
               <>

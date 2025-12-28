@@ -57,12 +57,6 @@ const navigation = [
     icon: Activity,
     permission: "isSuperAdmin",
   },
-  {
-    name: "Settings",
-    href: "/admin/dashboard/settings",
-    icon: Settings,
-    permission: "canManageContent",
-  },
 ];
 
 export default function AdminDashboardLayout({ children }) {

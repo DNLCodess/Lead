@@ -2,6 +2,15 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  Calendar,
+  CalendarDays,
+  CalendarRange,
+  Target,
+  CheckCircle2,
+  Loader2,
+  Shield,
+} from "lucide-react";
 import { ProfileService } from "@/lib/services/profile-service";
 import { useInitializeWeekPayment } from "@/hooks/use-week-payment";
 import Script from "next/script";
@@ -10,26 +19,26 @@ const paymentPlans = [
   {
     id: "weekly",
     name: "Weekly",
-    icon: "📅",
+    icon: Calendar,
     popular: false,
   },
   {
     id: "monthly",
     name: "Monthly",
-    icon: "📆",
+    icon: CalendarDays,
     popular: true,
     badge: "Popular",
   },
   {
     id: "bimonthly",
     name: "Bi-Monthly",
-    icon: "🗓️",
+    icon: CalendarRange,
     popular: false,
   },
   {
     id: "full",
     name: "Full Year",
-    icon: "🎯",
+    icon: Target,
     popular: false,
     badge: "Best Value",
   },
@@ -122,8 +131,8 @@ export default function PaymentWidget({ profile }) {
         animate={{ opacity: 1, y: 0 }}
         className="p-6"
         style={{
-          background: "var(--color-black-surface)",
-          border: "1px solid var(--color-black-border)",
+          background: "var(--surface)",
+          border: "1px solid var(--border-color)",
           borderRadius: "1.2rem",
         }}
       >
@@ -149,6 +158,7 @@ export default function PaymentWidget({ profile }) {
           {paymentPlans.map((plan) => {
             const isSelected = selectedPlan === plan.id;
             const planPricing = ProfileService.getPricing(accountType, plan.id);
+            const IconComponent = plan.icon;
 
             return (
               <motion.button
@@ -159,11 +169,11 @@ export default function PaymentWidget({ profile }) {
                 className="relative p-4 transition-all"
                 style={{
                   background: isSelected
-                    ? "linear-gradient(135deg, #1ed760, #16b455)"
-                    : "var(--color-black-elevated)",
+                    ? "linear-gradient(135deg, var(--color-green-primary), var(--color-green-hover))"
+                    : "var(--elevated)",
                   border: isSelected
-                    ? "2px solid #1ed760"
-                    : "1px solid var(--color-black-border)",
+                    ? "2px solid var(--color-green-primary)"
+                    : "1px solid var(--border-color)",
                   color: isSelected ? "#ffffff" : "var(--text-primary)",
                   borderRadius: "1rem",
                 }}
@@ -181,7 +191,9 @@ export default function PaymentWidget({ profile }) {
                   </div>
                 )}
 
-                <div className="text-2xl mb-2">{plan.icon}</div>
+                <div className="flex justify-center mb-2">
+                  <IconComponent className="w-7 h-7" strokeWidth={2} />
+                </div>
                 <div className="font-bold mb-1">{plan.name}</div>
                 <div className="text-sm opacity-80">
                   {planPricing.weeks} week{planPricing.weeks > 1 ? "s" : ""}
@@ -192,17 +204,7 @@ export default function PaymentWidget({ profile }) {
                     layoutId="selectedPlan"
                     className="absolute top-2 right-2"
                   >
-                    <svg
-                      className="w-5 h-5"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
+                    <CheckCircle2 className="w-5 h-5" />
                   </motion.div>
                 )}
               </motion.button>
@@ -219,8 +221,8 @@ export default function PaymentWidget({ profile }) {
             exit={{ opacity: 0, y: -10 }}
             className="p-6 mb-6"
             style={{
-              background: "var(--color-black-elevated)",
-              border: "1px solid var(--color-black-border)",
+              background: "var(--elevated)",
+              border: "1px solid var(--border-color)",
               borderRadius: "1rem",
             }}
           >
@@ -234,7 +236,7 @@ export default function PaymentWidget({ profile }) {
                 </div>
                 <div
                   className="text-4xl font-bold"
-                  style={{ color: "#1ed760" }}
+                  style={{ color: "var(--color-green-primary)" }}
                 >
                   {pricing.currency === "NGN" ? "₦" : "$"}
                   {pricing.amount.toLocaleString()}
@@ -286,31 +288,20 @@ export default function PaymentWidget({ profile }) {
           disabled={initializePayment.isPending || !isFlutterwaveLoaded}
           className="w-full py-4 font-bold text-lg transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
-            background: "linear-gradient(135deg, #1ed760, #16b455)",
+            background:
+              "linear-gradient(135deg, var(--color-green-primary), var(--color-green-hover))",
             color: "#ffffff",
             borderRadius: "1rem",
           }}
         >
           {!isFlutterwaveLoaded ? (
-            "Loading payment system..."
+            <span className="flex items-center justify-center gap-2">
+              <Loader2 className="animate-spin h-5 w-5" />
+              Loading payment system...
+            </span>
           ) : initializePayment.isPending ? (
             <span className="flex items-center justify-center gap-2">
-              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  fill="none"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
-              </svg>
+              <Loader2 className="animate-spin h-5 w-5" />
               Processing...
             </span>
           ) : (
@@ -332,12 +323,15 @@ export default function PaymentWidget({ profile }) {
           </motion.div>
         )}
 
-        <p
-          className="text-center text-sm mt-4"
-          style={{ color: "var(--text-muted)" }}
-        >
-          Secure payment powered by Flutterwave
-        </p>
+        <div className="flex items-center justify-center gap-2 mt-4">
+          <Shield className="w-4 h-4" style={{ color: "var(--text-muted)" }} />
+          <p
+            className="text-center text-sm"
+            style={{ color: "var(--text-muted)" }}
+          >
+            Secure payment powered by Flutterwave
+          </p>
+        </div>
       </motion.div>
     </>
   );
