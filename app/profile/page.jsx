@@ -1,9 +1,9 @@
-// app/profile/page.jsx (ADD THIS)
+// app/profile/page.jsx
 
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase/client";
 import { useUserProfile } from "@/hooks/use-profile";
@@ -17,12 +17,25 @@ import ProfileHeader from "@/components/shared/profile/header";
 
 export default function ProfilePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const [userId, setUserId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { activeTab } = useProfileStore();
+  const { activeTab, setActiveTab } = useProfileStore();
 
   const { data: profile, isLoading: profileLoading } = useUserProfile(userId);
+
+  // ✅ Sync URL params with store on mount
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+
+    // Valid tabs
+    const validTabs = ["overview", "calendar", "lecturers"];
+
+    if (tabParam && validTabs.includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams, setActiveTab]);
 
   // Check authentication
   useEffect(() => {
@@ -33,14 +46,14 @@ export default function ProfilePage() {
         } = await supabase.auth.getSession();
 
         if (!session) {
-          router.push("/login");
+          router.push("/auth/login");
           return;
         }
 
         setUserId(session.user.id);
       } catch (error) {
         console.error("Auth check failed:", error);
-        router.push("/login");
+        router.push("/auth/login");
       } finally {
         setIsLoading(false);
       }

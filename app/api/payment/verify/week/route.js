@@ -1,24 +1,11 @@
-// app/api/payment/verify-week-payment/route.js (NEW FILE)
+// app/api/payment/verify-week-payment/route.js
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
-const FLUTTERWAVE_SECRET_KEY = process.env.FLUTTERWAVE_SECRET_KEY;
-
 export async function GET(request) {
   try {
-    // Verify user authentication
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { searchParams } = new URL(request.url);
     const transactionId = searchParams.get("transaction_id");
 
@@ -29,122 +16,171 @@ export async function GET(request) {
       );
     }
 
-    console.log("Verifying week payment transaction:", transactionId);
+    console.log("Verifying week payment:", transactionId);
+
+    // Get authenticated user
+    const supabase = await createClient();
+    const {
+      data: { session },
+      error: authError,
+    } = await supabase.auth.getSession();
+
+    if (authError || !session?.user) {
+      return NextResponse.json(
+        { error: "Unauthorized - Please log in" },
+        { status: 401 }
+      );
+    }
+
+    const userId = session.user.id;
+
+    const { data: user } = await supabase
+      .from("students")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
+
+    console.log("Current user:", user);
 
     // Step 1: Verify with Flutterwave
-    const response = await fetch(
+    const flwResponse = await fetch(
       `https://api.flutterwave.com/v3/transactions/${transactionId}/verify`,
       {
-        method: "GET",
         headers: {
-          Authorization: `Bearer ${FLUTTERWAVE_SECRET_KEY}`,
-          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
         },
       }
     );
 
-    const data = await response.json();
-    console.log("Flutterwave verification response:", data);
-
-    if (!response.ok || data.status !== "success") {
-      return NextResponse.json(
-        {
-          error: data.message || "Payment verification failed",
-        },
-        { status: response.status || 400 }
-      );
+    if (!flwResponse.ok) {
+      throw new Error("Flutterwave verification failed");
     }
 
-    const transactionData = data.data;
+    const flwData = await flwResponse.json();
+    console.log("Flutterwave response:", flwData);
 
-    if (transactionData.status !== "successful") {
-      return NextResponse.json(
-        {
-          error: "Transaction was not successful",
-          status: transactionData.status,
-        },
-        { status: 400 }
-      );
+    if (flwData.status !== "success") {
+      throw new Error("Transaction verification failed");
     }
 
-    // Step 2: Update payment record
-    const { data: updatedPayment, error: updateError } = await supabaseAdmin
+    const transactionData = flwData.data;
+
+    // Step 2: Get payment record
+    const { data: payment, error: paymentError } = await supabaseAdmin
+      .from("payments")
+      .select("*")
+      .eq("tx_ref", transactionData.tx_ref)
+      .eq("user_id", userId)
+      .single();
+
+    if (paymentError || !payment) {
+      throw new Error("Payment record not found");
+    }
+
+    // ✅ FIXED: Check if weeks are already unlocked BEFORE trying to insert
+    const { data: existingWeeks } = await supabaseAdmin
+      .from("user_week_payments")
+      .select("week_number, id")
+      .eq("payment_id", payment.id);
+
+    // If already processed, return success immediately
+    if (existingWeeks && existingWeeks.length > 0) {
+      console.log("Payment already processed, returning existing weeks");
+
+      // Update payment status if needed
+      if (payment.status !== "completed") {
+        await supabaseAdmin
+          .from("payments")
+          .update({
+            status: "completed",
+            verified_at: new Date().toISOString(),
+          })
+          .eq("id", payment.id);
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          verified: true,
+          alreadyProcessed: true,
+          payment,
+          unlockedWeeks: existingWeeks.map((w) => w.week_number),
+          transactionData,
+        },
+      });
+    }
+
+    // Step 3: Verify transaction matches
+    if (
+      transactionData.status !== "successful" ||
+      parseFloat(transactionData.amount) !== payment.amount ||
+      transactionData.currency !== payment.currency
+    ) {
+      throw new Error("Transaction verification mismatch");
+    }
+
+    // Step 4: Get weeks to unlock from payment metadata
+    const weeksToUnlock = payment.registration_data?.weeks_to_unlock || [];
+
+    if (weeksToUnlock.length === 0) {
+      throw new Error("No weeks specified for unlocking");
+    }
+
+    // Step 5: Create week payment records (only if not already created)
+    const weekRecords = weeksToUnlock.map((weekNumber) => ({
+      user_id: userId,
+      payment_id: payment.id,
+      amount: payment.amount,
+      currency: payment.currency,
+      student_id: user.id,
+      week_number: weekNumber,
+      unlocked_at: new Date().toISOString(),
+    }));
+
+    const { error: weekError } = await supabaseAdmin
+      .from("user_week_payments")
+      .insert(weekRecords);
+
+    if (weekError) {
+      console.error("Week unlock error:", weekError);
+      throw new Error("Failed to unlock weeks");
+    }
+
+    // Step 6: Update payment status
+    const { error: updateError } = await supabaseAdmin
       .from("payments")
       .update({
-        transaction_id: transactionData.id.toString(),
-        flw_ref: transactionData.flw_ref,
         status: "successful",
-        payment_method: transactionData.payment_type || "card",
-        paid_at: transactionData.created_at || new Date().toISOString(),
         verified_at: new Date().toISOString(),
-        flw_response: transactionData,
       })
-      .eq("tx_ref", transactionData.tx_ref)
-      .eq("user_id", user.id) // Security: only update own payments
-      .select()
-      .single();
+      .eq("id", payment.id);
 
     if (updateError) {
       console.error("Payment update error:", updateError);
-      return NextResponse.json(
-        { error: "Failed to update payment record" },
-        { status: 500 }
-      );
+      throw new Error("Failed to update payment status");
     }
 
-    // Step 3: Unlock weeks
-    const registrationData = updatedPayment.registration_data;
-    const weeksToUnlock = registrationData?.weeks_to_unlock || [];
-
-    if (weeksToUnlock.length === 0) {
-      return NextResponse.json(
-        { error: "No weeks to unlock" },
-        { status: 400 }
-      );
-    }
-
-    // Create week unlock records
-    const unlockRecords = weeksToUnlock.map((weekNumber) => ({
-      user_id: user.id,
-      student_id: updatedPayment.student_id,
-      week_number: weekNumber,
-      payment_id: updatedPayment.id,
-      payment_ref: updatedPayment.tx_ref,
-      amount: updatedPayment.amount / weeksToUnlock.length,
-      currency: updatedPayment.currency,
-    }));
-
-    const { data: unlockedWeeks, error: unlockError } = await supabaseAdmin
-      .from("user_week_payments")
-      .upsert(unlockRecords, {
-        onConflict: "user_id,week_number",
-        ignoreDuplicates: false,
-      })
-      .select();
-
-    if (unlockError) {
-      console.error("Week unlock error:", unlockError);
-      return NextResponse.json(
-        { error: "Failed to unlock weeks" },
-        { status: 500 }
-      );
-    }
-
-    console.log("Weeks unlocked successfully:", unlockedWeeks);
+    console.log("Week payment verified successfully:", {
+      paymentId: payment.id,
+      unlockedWeeks: weeksToUnlock,
+    });
 
     return NextResponse.json({
       success: true,
       data: {
         verified: true,
-        payment: updatedPayment,
+        payment,
         unlockedWeeks: weeksToUnlock,
-        transactionData: transactionData,
+        transactionData,
       },
     });
   } catch (error) {
     console.error("Week payment verification error:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to verify payment" },
+      {
+        success: false,
+        error: error.message || "Payment verification failed",
+      },
       { status: 500 }
     );
   }

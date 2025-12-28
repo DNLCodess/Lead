@@ -23,7 +23,7 @@ export default function LoginPage() {
 
   // Load saved email if "Remember Me" was checked
   useEffect(() => {
-    const savedEmail = localStorage.getItem("mostore_remembered_email");
+    const savedEmail = localStorage.getItem("lead_remembered_email");
     if (savedEmail) {
       setFormData((prev) => ({ ...prev, email: savedEmail }));
       setRememberMe(true);

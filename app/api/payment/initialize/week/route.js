@@ -1,10 +1,9 @@
-// app/api/payment/initialize-week-payment/route.js (NEW FILE)
+// app/api/payment/initialize/week/route.js
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { ProfileService } from "@/lib/services/profile-service";
-import { useUserStore } from "@/lib/store/userStore";
 
 function generateTxRef() {
   return `LEAD-WEEK-${Date.now()}-${Math.random()
@@ -15,11 +14,33 @@ function generateTxRef() {
 
 export async function POST(request) {
   try {
+    // ✅ Create Supabase SSR client
     const supabase = await createClient();
 
-    if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // ✅ Get the session (more reliable than getUser for API routes)
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    console.log("Session check:", {
+      hasSession: !!session,
+      sessionError,
+      userId: session?.user?.id,
+    });
+
+    if (sessionError || !session?.user) {
+      console.error("Auth error:", sessionError);
+      return NextResponse.json(
+        {
+          error: "Unauthorized - Please log in again",
+          details: sessionError?.message,
+        },
+        { status: 401 }
+      );
     }
+
+    const user = session.user;
 
     const { paymentPlan, startWeek } = await request.json();
 
@@ -30,16 +51,25 @@ export async function POST(request) {
       );
     }
 
-    // Get student profile
+    // Get student profile using admin client
     const { data: student, error: studentError } = await supabaseAdmin
       .from("students")
       .select("*")
       .eq("user_id", user.id)
       .single();
 
+    console.log("Student lookup:", {
+      userId: user.id,
+      found: !!student,
+      error: studentError,
+    });
+
     if (studentError || !student) {
       return NextResponse.json(
-        { error: "Student profile not found" },
+        {
+          error: "Student profile not found",
+          details: studentError?.message,
+        },
         { status: 404 }
       );
     }
@@ -48,6 +78,8 @@ export async function POST(request) {
     const accountType = student.account_type || "nigerian";
     const pricing = ProfileService.getPricing(accountType, paymentPlan);
 
+    console.log("Pricing calculated:", pricing);
+
     // Calculate which weeks to unlock
     const { data: unlockedWeeks } = await supabaseAdmin
       .from("user_week_payments")
@@ -55,11 +87,11 @@ export async function POST(request) {
       .eq("user_id", user.id);
 
     const unlockedWeekNumbers = unlockedWeeks?.map((w) => w.week_number) || [];
-    const currentWeek = student.current_week || 1;
+    const currentWeek = startWeek || student.current_week || 1;
 
     // Calculate weeks to unlock
     const weeksToUnlock = [];
-    let week = startWeek || currentWeek;
+    let week = currentWeek;
 
     while (weeksToUnlock.length < pricing.weeks && week <= 52) {
       if (!unlockedWeekNumbers.includes(week)) {
@@ -74,6 +106,8 @@ export async function POST(request) {
         { status: 400 }
       );
     }
+
+    console.log("Weeks to unlock:", weeksToUnlock);
 
     // Generate unique transaction reference
     const txRef = generateTxRef();
@@ -107,8 +141,10 @@ export async function POST(request) {
 
     if (dbError) {
       console.error("Database error:", dbError);
-      throw new Error("Failed to create payment record");
+      throw new Error("Failed to create payment record: " + dbError.message);
     }
+
+    console.log("Payment record created:", paymentRecord.id);
 
     // Prepare Flutterwave payment payload
     const paymentPayload = {
@@ -129,9 +165,7 @@ export async function POST(request) {
         description: `Unlock ${weeksToUnlock.length} week${
           weeksToUnlock.length > 1 ? "s" : ""
         } - ${paymentPlan} plan`,
-        logo: `${
-          process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-        }/logo.png`,
+        logo: "https://rwkeaywvokhguvftrzse.supabase.co/storage/v1/object/public/random/logo-dark.png",
       },
       meta: {
         payment_id: paymentRecord.id,
@@ -141,6 +175,7 @@ export async function POST(request) {
         student_id: student.id,
       },
     };
+    console.log("Payment payload prepared:", paymentPayload);
 
     return NextResponse.json({
       success: true,
@@ -156,7 +191,10 @@ export async function POST(request) {
   } catch (error) {
     console.error("Week payment initialization error:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to initialize payment" },
+      {
+        error: error.message || "Failed to initialize payment",
+        stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+      },
       { status: 500 }
     );
   }

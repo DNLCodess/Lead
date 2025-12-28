@@ -96,16 +96,13 @@ export async function POST(request) {
       customizations: {
         title: "LEAD Registration Fee",
         description: "One-time registration payment",
-        logo: `${
-          process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-        }/logo.png`,
+        logo: "https://rwkeaywvokhguvftrzse.supabase.co/storage/v1/object/public/random/logo-dark.png",
       },
       meta: {
         payment_id: paymentRecord.id,
         registration_type: "student",
       },
     };
-
     return NextResponse.json({
       success: true,
       data: {
