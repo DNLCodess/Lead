@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Mail, Lock, Loader2, CheckCircle } from "lucide-react";
+import Image from "next/image";
 
 export default function LoginPage() {
   const searchParams = useSearchParams();
@@ -62,13 +63,18 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
-            <motion.h1
-              className="text-4xl font-bold text-[#1ed760]"
-              whileHover={{ scale: 1.05 }}
-              transition={{ type: "spring", stiffness: 400 }}
+            <motion.div
+              whileHover={{ rotate: 5, scale: 1.05 }}
+              className="relative w-32 h-32 mx-auto"
             >
-              LEAD
-            </motion.h1>
+              <Image
+                src="/logo-dark.png"
+                alt="Logo"
+                fill
+                className="object-contain "
+                priority
+              />
+            </motion.div>
           </Link>
           <p className="text-gray-400 mt-2">
             Welcome back! Sign in to continue
