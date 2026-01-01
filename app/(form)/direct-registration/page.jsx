@@ -15,6 +15,7 @@ import {
   RefreshCw,
   UserPlus,
   Sparkles,
+  AlertCircle,
 } from "lucide-react";
 import Image from "next/image";
 import { useLocationDetection } from "@/utils/use-location";
@@ -495,7 +496,7 @@ const DirectRegistrationForm = () => {
       // Auto-login if email is confirmed
       if (authData.user.email_confirmed_at) {
         setTimeout(() => {
-          window.location.href = "/dashboard";
+          window.location.href = "/profile";
         }, 2000);
       } else {
         setTimeout(() => {
