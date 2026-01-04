@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Script from "next/script";
-import { Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
 
 const FLUTTERWAVE_PUBLIC_KEY = process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY;
-const POLLING_INTERVAL = 5000; // Check every 5 seconds
-const MAX_POLLING_ATTEMPTS = 60; // Stop after 5 minutes (60 * 5s)
+const POLLING_INTERVAL = 3000; // Reduced to 3s for faster detection
+const MAX_POLLING_ATTEMPTS = 100; // Extended to 5 minutes (100 * 3s)
+const CALLBACK_TIMEOUT = 10000; // Wait 10s after modal close for callback
 
 export function FlutterwavePayment({
   paymentPayload,
@@ -16,91 +18,147 @@ export function FlutterwavePayment({
   onError,
 }) {
   const [pollingAttempts, setPollingAttempts] = useState(0);
-  const [paymentStatus, setPaymentStatus] = useState("initializing"); // initializing, polling, success, failed
+  const [paymentStatus, setPaymentStatus] = useState("initializing");
   const [statusMessage, setStatusMessage] = useState(
     "Loading payment gateway..."
   );
+  const [canRetry, setCanRetry] = useState(false);
 
-  // Poll payment status
-  const checkPaymentStatus = useCallback(async () => {
-    try {
-      const response = await fetch(
-        `/api/payment/status?tx_ref=${paymentPayload.tx_ref}`
-      );
-      const data = await response.json();
+  // Track if callback has been received
+  const callbackReceivedRef = useRef(false);
+  const modalClosedTimeRef = useRef(null);
+  const pollingIntervalRef = useRef(null);
 
-      if (data.success && data.data) {
-        const { status } = data.data;
+  // Improved payment status check with exponential backoff
+  const checkPaymentStatus = useCallback(
+    async (attempt = 0) => {
+      try {
+        console.log(
+          `[Payment Check ${attempt}] Checking status for tx_ref: ${paymentPayload.tx_ref}`
+        );
 
-        if (status === "successful" || status === "completed") {
-          setPaymentStatus("success");
-          setStatusMessage("Payment confirmed! Redirecting...");
-          // Stop polling and trigger success
-          setTimeout(() => {
-            onSuccess({
-              transaction_id: data.data.transaction_id,
-              tx_ref: paymentPayload.tx_ref,
-              status: status,
-            });
-          }, 1500);
-          return true; // Stop polling
-        } else if (status === "failed" || status === "cancelled") {
-          setPaymentStatus("failed");
-          setStatusMessage("Payment was not completed");
-          setTimeout(() => onClose(), 2000);
-          return true; // Stop polling
+        const response = await fetch(
+          `/api/payment/status?tx_ref=${paymentPayload.tx_ref}`,
+          {
+            method: "GET",
+            headers: {
+              "Cache-Control": "no-cache",
+              Pragma: "no-cache",
+            },
+          }
+        );
+
+        if (!response.ok) {
+          console.error(`[Payment Check] HTTP ${response.status}`);
+          return false;
         }
+
+        const data = await response.json();
+        console.log(`[Payment Check] Response:`, data);
+
+        if (data.success && data.data) {
+          const { status, transaction_id } = data.data;
+
+          if (status === "successful" || status === "completed") {
+            console.log(`[Payment Check] ✅ Payment successful`);
+            callbackReceivedRef.current = true;
+            setPaymentStatus("success");
+            setStatusMessage("Payment confirmed! Setting up your account...");
+
+            // Clear any existing polling
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current);
+              pollingIntervalRef.current = null;
+            }
+
+            // Slight delay for UX
+            setTimeout(() => {
+              onSuccess({
+                transaction_id: transaction_id || data.data.flw_transaction_id,
+                tx_ref: paymentPayload.tx_ref,
+                status: status,
+              });
+            }, 1500);
+            return true;
+          }
+
+          if (status === "failed" || status === "cancelled") {
+            console.log(`[Payment Check] ❌ Payment ${status}`);
+            setPaymentStatus("failed");
+            setStatusMessage(`Payment ${status}. Please try again.`);
+            setCanRetry(true);
+
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current);
+              pollingIntervalRef.current = null;
+            }
+            return true;
+          }
+
+          // Still pending
+          console.log(`[Payment Check] ⏳ Payment pending (${status})`);
+          return false;
+        }
+
+        return false;
+      } catch (error) {
+        console.error("[Payment Check] Error:", error);
+        return false;
       }
+    },
+    [paymentPayload.tx_ref, onSuccess]
+  );
 
-      return false; // Continue polling
-    } catch (error) {
-      console.error("Error checking payment status:", error);
-      return false; // Continue polling
+  // Start polling with proper cleanup
+  const startPolling = useCallback(() => {
+    console.log("[Polling] Starting payment status polling");
+
+    // Clear any existing interval
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
     }
-  }, [paymentPayload.tx_ref, onSuccess, onClose]);
 
-  // Start background polling when modal is open
-  useEffect(() => {
-    if (paymentStatus !== "polling") return;
+    setPaymentStatus("polling");
+    setStatusMessage("Verifying your payment...");
+    setPollingAttempts(0);
 
-    const pollInterval = setInterval(async () => {
+    // Immediate check
+    checkPaymentStatus(0);
+
+    // Set up polling interval
+    pollingIntervalRef.current = setInterval(async () => {
       setPollingAttempts((prev) => {
         const newCount = prev + 1;
+        console.log(`[Polling] Attempt ${newCount}/${MAX_POLLING_ATTEMPTS}`);
 
-        // Stop after max attempts
         if (newCount >= MAX_POLLING_ATTEMPTS) {
-          clearInterval(pollInterval);
-          setPaymentStatus("failed");
-          setStatusMessage("Payment verification timed out");
-          setTimeout(onClose, 2000);
+          console.log("[Polling] Max attempts reached");
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+
+          setPaymentStatus("timeout");
+          setStatusMessage(
+            "Payment verification timed out. Don't worry - if you paid, we'll process it."
+          );
+          setCanRetry(true);
         }
 
         return newCount;
       });
 
-      const shouldStop = await checkPaymentStatus();
-      if (shouldStop) {
-        clearInterval(pollInterval);
+      const shouldStop = await checkPaymentStatus(pollingAttempts + 1);
+      if (shouldStop && pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
       }
     }, POLLING_INTERVAL);
+  }, [checkPaymentStatus, pollingAttempts]);
 
-    return () => clearInterval(pollInterval);
-  }, [paymentStatus, checkPaymentStatus, onClose]);
-
-  const handleScriptLoad = () => {
-    console.log("Flutterwave script loaded");
-
-    if (typeof window !== "undefined" && window.FlutterwaveCheckout) {
-      initializePayment();
-    } else {
-      console.error("FlutterwaveCheckout not available");
-      setPaymentStatus("failed");
-      onError(new Error("Payment gateway failed to load"));
-    }
-  };
-
-  const initializePayment = () => {
+  // Initialize Flutterwave payment
+  const initializePayment = useCallback(() => {
     try {
+      console.log("[Flutterwave] Initializing payment modal");
+
       window.FlutterwaveCheckout({
         public_key: FLUTTERWAVE_PUBLIC_KEY,
         tx_ref: paymentPayload.tx_ref,
@@ -111,36 +169,122 @@ export function FlutterwavePayment({
         customer: paymentPayload.customer,
         customizations: paymentPayload.customizations,
         meta: paymentPayload.meta,
+
         callback: function (response) {
-          console.log("Payment callback response:", response);
+          console.log("[Flutterwave] Callback received:", response);
+          callbackReceivedRef.current = true;
 
           if (
             response.status === "successful" ||
             response.status === "completed"
           ) {
+            console.log("[Flutterwave] ✅ Payment successful via callback");
             setPaymentStatus("success");
-            setStatusMessage("Payment successful! Verifying...");
-            onSuccess(response);
+            setStatusMessage("Payment successful! Setting up your account...");
+
+            // Clear polling if active
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current);
+              pollingIntervalRef.current = null;
+            }
+
+            setTimeout(() => {
+              onSuccess({
+                transaction_id: response.transaction_id,
+                tx_ref: response.tx_ref,
+                status: response.status,
+              });
+            }, 1500);
           } else {
+            console.log("[Flutterwave] ❌ Payment failed via callback");
             setPaymentStatus("failed");
+            setStatusMessage(`Payment ${response.status}`);
+            setCanRetry(true);
             onError(new Error(`Payment ${response.status}`));
           }
         },
+
         onclose: function () {
-          console.log("Payment modal closed");
-          // Start polling in case they completed payment but closed modal
-          setPaymentStatus("polling");
-          setStatusMessage("Checking payment status...");
+          console.log("[Flutterwave] Modal closed by user");
+          modalClosedTimeRef.current = Date.now();
+
+          // If callback already received, do nothing
+          if (callbackReceivedRef.current) {
+            console.log(
+              "[Flutterwave] Callback already processed, ignoring close"
+            );
+            return;
+          }
+
+          // Wait for potential late callback
+          setTimeout(() => {
+            if (!callbackReceivedRef.current) {
+              console.log(
+                "[Flutterwave] No callback received, starting polling"
+              );
+              startPolling();
+            } else {
+              console.log(
+                "[Flutterwave] Late callback received, skipping polling"
+              );
+            }
+          }, 2000); // 2s grace period for slow callbacks
         },
       });
-
-      // Start polling immediately as a safety net
-      setPaymentStatus("polling");
     } catch (error) {
-      console.error("Error initializing payment:", error);
+      console.error("[Flutterwave] Initialization error:", error);
       setPaymentStatus("failed");
+      setStatusMessage("Failed to load payment gateway");
+      setCanRetry(true);
       onError(error);
     }
+  }, [paymentPayload, onSuccess, onError, startPolling]);
+
+  // Handle script load
+  const handleScriptLoad = () => {
+    console.log("[Script] Flutterwave script loaded");
+
+    if (typeof window !== "undefined" && window.FlutterwaveCheckout) {
+      initializePayment();
+    } else {
+      console.error("[Script] FlutterwaveCheckout not available");
+      setPaymentStatus("failed");
+      setStatusMessage("Payment gateway failed to load");
+      setCanRetry(true);
+      onError(new Error("Payment gateway failed to load"));
+    }
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      console.log("[Cleanup] Clearing polling interval");
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, []);
+
+  // Handle retry
+  const handleRetry = () => {
+    setCanRetry(false);
+    setPaymentStatus("initializing");
+    setStatusMessage("Retrying payment...");
+    callbackReceivedRef.current = false;
+    modalClosedTimeRef.current = null;
+    setPollingAttempts(0);
+
+    // Reinitialize after brief delay
+    setTimeout(() => {
+      if (window.FlutterwaveCheckout) {
+        initializePayment();
+      } else {
+        setPaymentStatus("failed");
+        setStatusMessage("Please refresh the page and try again");
+        setCanRetry(true);
+      }
+    }, 500);
   };
 
   return (
@@ -150,22 +294,26 @@ export function FlutterwavePayment({
         strategy="afterInteractive"
         onLoad={handleScriptLoad}
         onError={(e) => {
-          console.error("Failed to load Flutterwave script:", e);
+          console.error("[Script] Failed to load:", e);
           setPaymentStatus("failed");
+          setStatusMessage("Failed to load payment gateway");
+          setCanRetry(true);
           onError(new Error("Failed to load payment gateway"));
         }}
       />
 
-      {/* Status Overlay - Shows when actively polling */}
+      {/* Status Overlay */}
       <AnimatePresence>
         {(paymentStatus === "polling" ||
           paymentStatus === "success" ||
-          paymentStatus === "failed") && (
+          paymentStatus === "failed" ||
+          paymentStatus === "timeout") && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+            className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={(e) => e.stopPropagation()} // Prevent accidental clicks
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
@@ -175,52 +323,118 @@ export function FlutterwavePayment({
               style={{ boxShadow: "var(--shadow-xl)" }}
             >
               <div className="flex flex-col items-center text-center space-y-4">
+                {/* Polling State */}
                 {paymentStatus === "polling" && (
                   <>
-                    <Loader2 className="w-16 h-16 text-[var(--color-green-primary)] animate-spin" />
+                    <div className="relative">
+                      <Loader2 className="w-16 h-16 text-[var(--color-green-primary)] animate-spin" />
+                      <motion.div
+                        className="absolute inset-0 rounded-full"
+                        animate={{
+                          boxShadow: [
+                            "0 0 0 0 rgba(30, 215, 96, 0.4)",
+                            "0 0 0 20px rgba(30, 215, 96, 0)",
+                          ],
+                        }}
+                        transition={{
+                          duration: 1.5,
+                          repeat: Infinity,
+                        }}
+                      />
+                    </div>
                     <h3 className="text-xl font-semibold text-[var(--text-primary)]">
                       {statusMessage}
                     </h3>
                     <p className="text-sm text-[var(--text-secondary)]">
-                      This may take a few moments. Please don't close this
-                      window.
+                      Please wait while we confirm your payment. This usually
+                      takes a few seconds.
                     </p>
                     <div className="w-full bg-[var(--elevated)] rounded-full h-2 overflow-hidden">
                       <motion.div
                         className="h-full bg-[var(--color-green-primary)]"
                         initial={{ width: "0%" }}
-                        animate={{ width: "100%" }}
-                        transition={{
-                          duration:
-                            (POLLING_INTERVAL * MAX_POLLING_ATTEMPTS) / 1000,
-                          ease: "linear",
+                        animate={{
+                          width: `${
+                            (pollingAttempts / MAX_POLLING_ATTEMPTS) * 100
+                          }%`,
                         }}
+                        transition={{ duration: 0.3 }}
                       />
                     </div>
+                    <p className="text-xs text-[var(--text-muted)]">
+                      Attempt {pollingAttempts} of {MAX_POLLING_ATTEMPTS}
+                    </p>
                   </>
                 )}
 
+                {/* Success State */}
                 {paymentStatus === "success" && (
                   <>
-                    <CheckCircle2 className="w-16 h-16 text-[var(--color-green-primary)]" />
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 200,
+                        damping: 15,
+                      }}
+                    >
+                      <CheckCircle2 className="w-16 h-16 text-[var(--color-green-primary)]" />
+                    </motion.div>
                     <h3 className="text-xl font-semibold text-[var(--text-primary)]">
                       {statusMessage}
                     </h3>
+                    <p className="text-sm text-[var(--text-secondary)]">
+                      You'll be redirected shortly...
+                    </p>
                   </>
                 )}
 
-                {paymentStatus === "failed" && (
+                {/* Failed State */}
+                {(paymentStatus === "failed" ||
+                  paymentStatus === "timeout") && (
                   <>
-                    <XCircle className="w-16 h-16 text-red-500" />
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 200,
+                        damping: 15,
+                      }}
+                    >
+                      {paymentStatus === "timeout" ? (
+                        <AlertTriangle className="w-16 h-16 text-yellow-500" />
+                      ) : (
+                        <XCircle className="w-16 h-16 text-red-500" />
+                      )}
+                    </motion.div>
                     <h3 className="text-xl font-semibold text-[var(--text-primary)]">
                       {statusMessage}
                     </h3>
-                    <button
-                      onClick={onClose}
-                      className="px-6 py-2 bg-[var(--color-green-primary)] text-white rounded-lg hover:bg-[var(--color-green-hover)] transition-colors"
-                    >
-                      Close
-                    </button>
+                    <p className="text-sm text-[var(--text-secondary)]">
+                      {paymentStatus === "timeout"
+                        ? "If you completed payment, check your email for confirmation or contact support with reference: " +
+                          paymentPayload.tx_ref.substring(0, 12)
+                        : "Don't worry, no charges were made to your account."}
+                    </p>
+                    <div className="flex gap-3 w-full">
+                      {canRetry && (
+                        <Button
+                          onClick={handleRetry}
+                          className="flex-1 bg-[var(--color-green-primary)] text-white hover:bg-[var(--color-green-hover)]"
+                        >
+                          Try Again
+                        </Button>
+                      )}
+                      <Button
+                        onClick={onClose}
+                        variant="outline"
+                        className="flex-1 border-[var(--border-color)] text-[var(--text-primary)]"
+                      >
+                        Close
+                      </Button>
+                    </div>
                   </>
                 )}
               </div>

@@ -15,6 +15,7 @@ import {
   RefreshCw,
   CreditCard,
   DollarSign,
+  AlertTriangle,
 } from "lucide-react";
 import Image from "next/image";
 import { useLocationDetection } from "@/utils/use-location";
@@ -63,6 +64,8 @@ const RegistrationForm = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState(null);
   const [formErrors, setFormErrors] = useState({});
+  const [globalError, setGlobalError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Location detection hook
   const {
@@ -235,6 +238,8 @@ const RegistrationForm = () => {
       setHasRestoredData(false);
       setSameAsTelegram(false);
       setIsInitialLoad(false);
+      setGlobalError(null);
+      setFormErrors({});
     }
   };
 
@@ -269,6 +274,7 @@ const RegistrationForm = () => {
     }));
     // Clear error for this field
     setFormErrors((prev) => ({ ...prev, [name]: "" }));
+    setGlobalError(null);
   };
 
   const handleSelectChange = (name, value) => {
@@ -277,6 +283,7 @@ const RegistrationForm = () => {
       [name]: value,
     }));
     setFormErrors((prev) => ({ ...prev, [name]: "" }));
+    setGlobalError(null);
   };
 
   const handleImageUpload = (e) => {
@@ -390,6 +397,7 @@ const RegistrationForm = () => {
     if (validateStep(currentStep)) {
       if (currentStep < totalSteps) {
         setCurrentStep(currentStep + 1);
+        setGlobalError(null);
       }
     }
   };
@@ -397,49 +405,134 @@ const RegistrationForm = () => {
   const prevStep = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
+      setGlobalError(null);
     }
   };
 
-  // Handle payment initialization
-  const handleInitializePayment = () => {
-    // Final validation
-    if (!validateStep(3)) {
-      setCurrentStep(3);
+  // Handle payment initialization with comprehensive validation
+  const handleInitializePayment = async () => {
+    // Clear previous errors
+    setGlobalError(null);
+    setFormErrors({});
+
+    // Final comprehensive validation
+    const validationErrors = {};
+
+    if (!formData.firstName.trim())
+      validationErrors.firstName = "First name is required";
+    if (!formData.lastName.trim())
+      validationErrors.lastName = "Last name is required";
+    if (!formData.email.trim()) {
+      validationErrors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      validationErrors.email = "Please enter a valid email address";
+    }
+    if (!formData.country) validationErrors.country = "Country is required";
+    if (!formData.city.trim()) validationErrors.city = "City is required";
+    if (!formData.phoneNumber.trim())
+      validationErrors.phoneNumber = "Phone number is required";
+    if (!sameAsTelegram && !formData.telegramPhone.trim()) {
+      validationErrors.telegramPhone = "Telegram phone number is required";
+    }
+    if (!formData.password) {
+      validationErrors.password = "Password is required";
+    } else if (formData.password.length < 8) {
+      validationErrors.password = "Password must be at least 8 characters";
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
+      validationErrors.password =
+        "Password must contain uppercase, lowercase, and numbers";
+    }
+    if (!formData.confirmPassword) {
+      validationErrors.confirmPassword = "Please confirm your password";
+    } else if (formData.password !== formData.confirmPassword) {
+      validationErrors.confirmPassword = "Passwords do not match";
+    }
+
+    if (Object.keys(validationErrors).length > 0) {
+      setFormErrors(validationErrors);
+      setGlobalError("Please fix the errors before proceeding to payment");
+
+      // Navigate to first error step
+      if (
+        validationErrors.firstName ||
+        validationErrors.lastName ||
+        validationErrors.email
+      ) {
+        setCurrentStep(1);
+      } else if (
+        validationErrors.country ||
+        validationErrors.city ||
+        validationErrors.phoneNumber ||
+        validationErrors.telegramPhone
+      ) {
+        setCurrentStep(2);
+      } else if (
+        validationErrors.password ||
+        validationErrors.confirmPassword
+      ) {
+        setCurrentStep(3);
+      }
       return;
     }
 
-    initializePayment(formData, {
-      onSuccess: (data) => {
-        setPaymentPayload(data.paymentPayload);
-        setShowPaymentModal(true);
-      },
-      onError: (error) => {
-        console.error("Payment initialization failed:", error);
-      },
-    });
+    setIsSubmitting(true);
+
+    try {
+      console.log("[Registration] Initializing payment...");
+
+      initializePayment(formData, {
+        onSuccess: (data) => {
+          console.log(
+            "[Registration] Payment initialization successful:",
+            data
+          );
+          setPaymentPayload(data.paymentPayload);
+          setShowPaymentModal(true);
+          setIsSubmitting(false);
+        },
+        onError: (error) => {
+          console.error("[Registration] Payment initialization failed:", error);
+          setGlobalError(
+            error.message ||
+              "Failed to initialize payment. Please check your connection and try again."
+          );
+          setIsSubmitting(false);
+        },
+      });
+    } catch (error) {
+      console.error("[Registration] Unexpected error:", error);
+      setGlobalError(
+        "An unexpected error occurred. Please refresh the page and try again."
+      );
+      setIsSubmitting(false);
+    }
   };
 
   // Payment callbacks
   const handlePaymentSuccess = (response) => {
-    console.log("Payment successful:", response);
+    console.log("[Registration] Payment successful:", response);
     setShowPaymentModal(false);
-    // Redirect will be handled by the verify-payment page
+
+    // Clear form storage on successful payment
+    clearFormStorage();
+
+    // Redirect to verification page
     window.location.href = `/verify-payment?transaction_id=${response.transaction_id}&tx_ref=${response.tx_ref}&status=${response.status}`;
   };
 
   const handlePaymentClose = () => {
+    console.log("[Registration] Payment modal closed");
     setShowPaymentModal(false);
     setPaymentPayload(null);
   };
 
   const handlePaymentError = (error) => {
-    console.error("Payment error:", error);
+    console.error("[Registration] Payment error:", error);
     setShowPaymentModal(false);
     setPaymentPayload(null);
-    setFormErrors((prev) => ({
-      ...prev,
-      payment: error.message || "Payment failed. Please try again.",
-    }));
+    setGlobalError(
+      error.message || "Payment failed. Please try again or contact support."
+    );
   };
 
   const renderStepContent = () => {
@@ -650,7 +743,7 @@ const RegistrationForm = () => {
               </motion.div>
             )}
 
-            {/* {locationDetected && (
+            {locationDetected && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -664,7 +757,7 @@ const RegistrationForm = () => {
                   {countryName}, {city}
                 </p>
               </motion.div>
-            )} */}
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <motion.div variants={itemVariants} className="space-y-2.5">
@@ -996,14 +1089,6 @@ const RegistrationForm = () => {
             animate="visible"
             className="space-y-6"
           >
-            {/* Payment Error */}
-            {formErrors.payment && (
-              <Alert variant="destructive">
-                <AlertTitle>Payment Error</AlertTitle>
-                <AlertDescription>{formErrors.payment}</AlertDescription>
-              </Alert>
-            )}
-
             {/* Payment Summary */}
             <motion.div
               variants={itemVariants}
@@ -1103,7 +1188,7 @@ const RegistrationForm = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--background)] flex items-center justify-center p-4 overflow-hidden relative">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 overflow-hidden relative">
       {/* Flutterwave Payment Modal */}
       {showPaymentModal && paymentPayload && (
         <FlutterwavePayment
@@ -1126,7 +1211,7 @@ const RegistrationForm = () => {
             repeat: Infinity,
             ease: "easeInOut",
           }}
-          className="absolute top-0 right-0 w-[600px] h-[600px] bg-[var(--color-green-primary)] rounded-full blur-[120px]"
+          className="absolute top-0 right-0 w-150 h-150 bg-[var(--color-green-primary)] rounded-full blur-[120px]"
         />
         <motion.div
           animate={{
@@ -1138,7 +1223,7 @@ const RegistrationForm = () => {
             repeat: Infinity,
             ease: "easeInOut",
           }}
-          className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[var(--color-green-dark)] rounded-full blur-[100px]"
+          className="absolute bottom-0 left-0 w-150 h-150 bg-[var(--color-green-dark)] rounded-full blur-[100px]"
         />
       </div>
 
@@ -1246,6 +1331,15 @@ const RegistrationForm = () => {
 
           {/* Form Content */}
           <div className="p-8 min-h-[480px]">
+            {/* Global Error Display */}
+            {globalError && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{globalError}</AlertDescription>
+              </Alert>
+            )}
+
             <AnimatePresence mode="wait">{renderStepContent()}</AnimatePresence>
           </div>
 
@@ -1256,8 +1350,8 @@ const RegistrationForm = () => {
                 type="button"
                 variant="outline"
                 onClick={prevStep}
-                disabled={isInitializingPayment}
-                className="h-12 px-6 bg-[var(--elevated)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--border-color)]/30 hover:border-[var(--color-green-primary)]/40 transition-all duration-200"
+                disabled={isInitializingPayment || isSubmitting}
+                className="h-12 px-6 bg-[var(--elevated)] border-[var(--border-color)] text-[var(--text-primary)] hover:bg-[var(--border-color)]/30 hover:border-[var(--color-green-primary)]/40 transition-all duration-200 disabled:opacity-50"
                 style={{ boxShadow: "var(--shadow-sm)" }}
               >
                 <ChevronLeft className="w-4 h-4 mr-2" />
@@ -1269,7 +1363,8 @@ const RegistrationForm = () => {
               <Button
                 type="button"
                 onClick={nextStep}
-                className="h-12 px-8 ml-auto bg-[var(--color-green-primary)] hover:bg-[var(--color-green-hover)] text-white font-semibold transition-all duration-200"
+                disabled={isSubmitting}
+                className="h-12 px-8 ml-auto bg-[var(--color-green-primary)] hover:bg-[var(--color-green-hover)] text-white font-semibold transition-all duration-200 disabled:opacity-50"
                 style={{
                   boxShadow: "0 4px 14px 0 rgba(30, 215, 96, 0.39)",
                 }}
@@ -1281,13 +1376,13 @@ const RegistrationForm = () => {
               <Button
                 type="button"
                 onClick={handleInitializePayment}
-                disabled={isInitializingPayment}
+                disabled={isInitializingPayment || isSubmitting}
                 className="h-12 px-8 ml-auto bg-[var(--color-green-primary)] hover:bg-[var(--color-green-hover)] text-white font-semibold transition-all duration-200 disabled:opacity-50"
                 style={{
                   boxShadow: "0 4px 14px 0 rgba(30, 215, 96, 0.39)",
                 }}
               >
-                {isInitializingPayment ? (
+                {isInitializingPayment || isSubmitting ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Processing...
