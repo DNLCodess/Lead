@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
@@ -797,6 +797,14 @@ function AddWeekModal({ isOpen, onClose, weekNumber, onSuccess }) {
     lecturer_id: "",
     is_published: false,
   });
+  useEffect(() => {
+    if (isOpen) {
+      setFormData((prev) => ({
+        ...prev,
+        week_number: weekNumber,
+      }));
+    }
+  }, [weekNumber, isOpen]);
 
   // Fetch lecturers
   const { data: lecturers } = useQuery({
@@ -837,6 +845,7 @@ function AddWeekModal({ isOpen, onClose, weekNumber, onSuccess }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    console.log("Formdata is", formData);
     createMutation.mutate(formData);
   };
 
