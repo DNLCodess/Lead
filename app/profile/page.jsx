@@ -14,6 +14,7 @@ import OverviewTab from "@/components/shared/profile/tab/overview";
 import CalendarTab from "@/components/shared/profile/tab/calendar";
 import ProfileTabs from "@/components/shared/profile/tabs";
 import ProfileHeader from "@/components/shared/profile/header";
+import PendingPaymentsAlert from "@/components/shared/profile/PendingPaymentsAlert";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -123,6 +124,9 @@ export default function ProfilePage() {
             profile={profile}
             onProfileUpdate={handleProfileUpdate}
           />
+
+          {/* 🎯 Pending Payments Alert - Shows if there are stuck payments */}
+          {userId && <PendingPaymentsAlert userId={userId} />}
 
           {/* Tabs Navigation */}
           <ProfileTabs />

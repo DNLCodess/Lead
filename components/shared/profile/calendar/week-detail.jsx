@@ -2,8 +2,8 @@
 
 "use client";
 
-import { motion } from "framer-motion";
-import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
 import { useProfileStore } from "@/lib/store/profile-store";
 import {
   useWeekContent,
@@ -15,6 +15,8 @@ export default function WeekDetailModal({ weekNumber, profile, isUnlocked }) {
   const { closeWeekModal } = useProfileStore();
   const [notes, setNotes] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const { data: weekContent, isLoading: contentLoading } =
     useWeekContent(weekNumber);
@@ -22,11 +24,21 @@ export default function WeekDetailModal({ weekNumber, profile, isUnlocked }) {
   const saveNotesMutation = useSaveWeekNotes();
 
   // Initialize notes from saved data
-  useState(() => {
+  useEffect(() => {
     if (weekNotes?.notes) {
       setNotes(weekNotes.notes);
     }
   }, [weekNotes]);
+
+  // Reset success message after 3 seconds
+  useEffect(() => {
+    if (saveSuccess) {
+      const timer = setTimeout(() => {
+        setSaveSuccess(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [saveSuccess]);
 
   const handleSaveNotes = async () => {
     if (!notes.trim()) return;
@@ -39,6 +51,11 @@ export default function WeekDetailModal({ weekNumber, profile, isUnlocked }) {
         weekNumber,
         notes: notes.trim(),
       });
+      setSaveSuccess(true);
+      setShowConfetti(true);
+
+      // Hide confetti after animation
+      setTimeout(() => setShowConfetti(false), 2000);
     } catch (error) {
       console.error("Failed to save notes:", error);
     } finally {
@@ -56,6 +73,94 @@ export default function WeekDetailModal({ weekNumber, profile, isUnlocked }) {
         onClick={closeWeekModal}
         className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50"
       />
+
+      {/* Success Toast */}
+      <AnimatePresence>
+        {saveSuccess && (
+          <motion.div
+            initial={{ opacity: 0, y: -50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className="fixed top-8 left-1/2 -translate-x-1/2 z-[60] px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3"
+            style={{
+              background: "linear-gradient(135deg, #1ed760, #16b455)",
+              boxShadow: "0 10px 40px rgba(30, 215, 96, 0.4)",
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
+            >
+              <svg
+                className="w-6 h-6 text-white"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </motion.div>
+            <div>
+              <p className="text-white font-semibold text-lg">
+                Notes Saved Successfully! ✨
+              </p>
+              <p className="text-white/80 text-sm">
+                Your learning journey is being tracked
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Confetti Effect */}
+      {showConfetti && (
+        <div className="fixed inset-0 pointer-events-none z-[55]">
+          {[...Array(20)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute"
+              initial={{
+                x: typeof window !== "undefined" ? window.innerWidth / 2 : 0,
+                y: typeof window !== "undefined" ? window.innerHeight / 2 : 0,
+                scale: 0,
+                rotate: 0,
+              }}
+              animate={{
+                x:
+                  typeof window !== "undefined"
+                    ? Math.random() * window.innerWidth
+                    : Math.random() * 1000,
+                y:
+                  typeof window !== "undefined"
+                    ? Math.random() * window.innerHeight
+                    : Math.random() * 800,
+                scale: [0, 1, 0.8, 0],
+                rotate: Math.random() * 360,
+              }}
+              transition={{
+                duration: 1.5,
+                ease: "easeOut",
+              }}
+              style={{
+                width: Math.random() * 10 + 5,
+                height: Math.random() * 10 + 5,
+                background: [
+                  "#1ed760",
+                  "#ffd700",
+                  "#ff6b6b",
+                  "#4ecdc4",
+                  "#ff9ff3",
+                ][Math.floor(Math.random() * 5)],
+                borderRadius: Math.random() > 0.5 ? "50%" : "0%",
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Modal */}
       <motion.div
@@ -310,29 +415,71 @@ export default function WeekDetailModal({ weekNumber, profile, isUnlocked }) {
                   >
                     <span>✍️</span> My Learning Notes
                   </h3>
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="What did you learn this week? Write your key takeaways here..."
-                    className="w-full h-40 p-4 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-[#1ed760] transition-all"
-                    style={{
-                      background: "var(--color-black-surface)",
-                      border: "1px solid var(--color-black-border)",
-                      color: "var(--text-primary)",
-                      fontFamily: "var(--font-satoshi)",
-                    }}
-                  />
+                  <motion.div
+                    animate={saveSuccess ? { scale: [1, 1.02, 1] } : {}}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="What did you learn this week? Write your key takeaways here..."
+                      className="w-full h-40 p-4 rounded-xl resize-none focus:outline-none focus:ring-2 transition-all"
+                      style={{
+                        background: "var(--color-black-surface)",
+                        border: saveSuccess
+                          ? "2px solid #1ed760"
+                          : "1px solid var(--color-black-border)",
+                        color: "var(--text-primary)",
+                        fontFamily: "var(--font-satoshi)",
+                        boxShadow: saveSuccess
+                          ? "0 0 20px rgba(30, 215, 96, 0.2)"
+                          : "none",
+                      }}
+                    />
+                  </motion.div>
                   <div className="flex justify-between items-center mt-3">
-                    <span
-                      className="text-sm"
-                      style={{ color: "var(--text-muted)" }}
-                    >
-                      {notes.length} characters
-                    </span>
-                    <button
+                    <div className="flex items-center gap-3">
+                      <span
+                        className="text-sm"
+                        style={{ color: "var(--text-muted)" }}
+                      >
+                        {notes.length} characters
+                      </span>
+                      <AnimatePresence>
+                        {saveSuccess && (
+                          <motion.span
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 10 }}
+                            className="text-sm font-semibold flex items-center gap-1"
+                            style={{ color: "#1ed760" }}
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            Saved
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                    <motion.button
                       onClick={handleSaveNotes}
                       disabled={!notes.trim() || isSaving}
-                      className="px-6 py-2 rounded-lg font-semibold transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                      whileHover={
+                        notes.trim() && !isSaving ? { scale: 1.05 } : {}
+                      }
+                      whileTap={
+                        notes.trim() && !isSaving ? { scale: 0.95 } : {}
+                      }
+                      className="px-6 py-2 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden"
                       style={{
                         background: notes.trim()
                           ? "linear-gradient(135deg, #1ed760, #16b455)"
@@ -340,8 +487,62 @@ export default function WeekDetailModal({ weekNumber, profile, isUnlocked }) {
                         color: notes.trim() ? "#ffffff" : "var(--text-muted)",
                       }}
                     >
-                      {isSaving ? "Saving..." : "Save Notes"}
-                    </button>
+                      {isSaving && (
+                        <motion.div
+                          className="absolute inset-0 bg-white/20"
+                          initial={{ x: "-100%" }}
+                          animate={{ x: "100%" }}
+                          transition={{
+                            repeat: Infinity,
+                            duration: 1,
+                            ease: "linear",
+                          }}
+                        />
+                      )}
+                      <span className="relative flex items-center gap-2">
+                        {isSaving ? (
+                          <>
+                            <motion.svg
+                              className="w-4 h-4"
+                              animate={{ rotate: 360 }}
+                              transition={{
+                                repeat: Infinity,
+                                duration: 1,
+                                ease: "linear",
+                              }}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                              />
+                            </motion.svg>
+                            Saving...
+                          </>
+                        ) : saveSuccess ? (
+                          <>
+                            <svg
+                              className="w-4 h-4"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            Saved!
+                          </>
+                        ) : (
+                          "Save Notes"
+                        )}
+                      </span>
+                    </motion.button>
                   </div>
                 </div>
               </>
