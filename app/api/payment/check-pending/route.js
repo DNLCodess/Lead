@@ -7,6 +7,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 /**
  * Check for payments that are successful but haven't unlocked weeks
  * This helps users identify stuck payments that need retry
+ * Excludes registration payments (2000 NGN)
  */
 export async function GET(request) {
   try {
@@ -23,12 +24,13 @@ export async function GET(request) {
 
     const userId = session.user.id;
 
-    // Get all successful payments for this user
+    // Get all successful payments for this user (excluding registration payments)
     const { data: payments, error: paymentsError } = await supabaseAdmin
       .from("payments")
       .select("*")
       .eq("user_id", userId)
       .eq("status", "successful")
+      .neq("amount", 2000) // Exclude registration payments
       .order("created_at", { ascending: false });
 
     if (paymentsError) {
@@ -70,7 +72,7 @@ export async function GET(request) {
       }
     }
 
-    // Also check for "pending" status payments older than 10 minutes
+    // Also check for "pending" status payments older than 10 minutes (excluding registration)
     const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
 
     const { data: oldPendingPayments } = await supabaseAdmin
@@ -78,6 +80,7 @@ export async function GET(request) {
       .select("*")
       .eq("user_id", userId)
       .eq("status", "pending")
+      .neq("amount", 2000) // Exclude registration payments
       .lt("created_at", tenMinutesAgo);
 
     if (oldPendingPayments && oldPendingPayments.length > 0) {
