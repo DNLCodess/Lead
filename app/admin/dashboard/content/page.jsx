@@ -40,7 +40,7 @@ export default function ContentManagementPage() {
           `
           *,
           lecturers(id, name, image_url)
-        `
+        `,
         )
         .order("week_number", { ascending: true });
 
@@ -71,7 +71,7 @@ export default function ContentManagementPage() {
   });
 
   const selectedWeekData = weeksData?.find(
-    (w) => w.week_number === selectedWeek
+    (w) => w.week_number === selectedWeek,
   );
 
   if (isLoading) {
@@ -142,8 +142,8 @@ export default function ContentManagementPage() {
                 background: isSelected
                   ? "linear-gradient(135deg, #1ed760, #16b455)"
                   : hasContent
-                  ? "var(--color-black-surface)"
-                  : "var(--color-black-elevated)",
+                    ? "var(--color-black-surface)"
+                    : "var(--color-black-elevated)",
                 border: isSelected
                   ? "2px solid #1ed760"
                   : `1px solid ${
@@ -838,7 +838,7 @@ function AddWeekModal({ isOpen, onClose, weekNumber, onSuccess }) {
         telegram_link: "",
         resources: [],
         lecturer_id: "",
-        is_published: false,
+        is_published: true,
       });
     },
   });
