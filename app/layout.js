@@ -3,6 +3,7 @@ import "./globals.css";
 import localFont from "next/font/local";
 import Providers from "@/providers";
 import FloatingThemeToggleExpanded from "@/components/common/theme-toggle";
+import SupabaseKeepAlive from "@/components/common/SupabaseKeepAlive";
 
 const news = Newsreader({
   variable: "--font-new",
@@ -24,6 +25,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className={`${news.variable} ${satoshi.variable} antialiased`}>
         <Providers>
+          <SupabaseKeepAlive />
           {children}
           {/* <FloatingThemeToggleExpanded position="bottom-left" /> */}
         </Providers>
