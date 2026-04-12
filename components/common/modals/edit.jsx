@@ -2,10 +2,9 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase/client";
 import Image from "next/image";
 
 export default function EditProfileModal({ isOpen, onClose, profile }) {
@@ -19,6 +18,19 @@ export default function EditProfileModal({ isOpen, onClose, profile }) {
     telegram_phone: profile?.telegram_phone || "",
   });
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+
+  // Re-sync form when profile prop changes (e.g. after external update or modal reopen)
+  useEffect(() => {
+    setFormData({
+      first_name: profile?.first_name || "",
+      last_name: profile?.last_name || "",
+      middle_name: profile?.middle_name || "",
+      phone_number: profile?.phone_number || "",
+      city: profile?.city || "",
+      telegram_phone: profile?.telegram_phone || "",
+    });
+  }, [profile]);
 
   const updateProfile = useMutation({
     mutationFn: async (data) => {
@@ -46,30 +58,25 @@ export default function EditProfileModal({ isOpen, onClose, profile }) {
     if (!file) return;
 
     setIsUploading(true);
+    setUploadError(null);
     try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${profile.user_id}-${Date.now()}.${fileExt}`;
-      const filePath = `profile-pictures/${fileName}`;
+      const formData = new FormData();
+      formData.append("file", file);
 
-      const { error: uploadError } = await supabase.storage
-        .from("student-files")
-        .upload(filePath, file);
+      const res = await fetch("/api/profile/upload-picture", {
+        method: "POST",
+        body: formData,
+      });
 
-      if (uploadError) throw uploadError;
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("profile_pictures").getPublicUrl(filePath);
-
-      await supabase
-        .from("students")
-        .update({ profile_picture_url: publicUrl })
-        .eq("user_id", profile.user_id);
+      if (!res.ok) {
+        const { error } = await res.json();
+        throw new Error(error || "Upload failed");
+      }
 
       queryClient.invalidateQueries(["user-profile"]);
     } catch (error) {
       console.error("Upload error:", error);
-      alert("Failed to upload image");
+      setUploadError("Failed to upload image. Please try a different file.");
     } finally {
       setIsUploading(false);
     }
@@ -81,6 +88,7 @@ export default function EditProfileModal({ isOpen, onClose, profile }) {
     <AnimatePresence>
       {/* Backdrop */}
       <motion.div
+        key="edit-profile-backdrop"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -90,23 +98,22 @@ export default function EditProfileModal({ isOpen, onClose, profile }) {
 
       {/* Modal */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        key="edit-profile-modal"
+        initial={{ opacity: 0, scale: 0.93, y: 24 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        exit={{ opacity: 0, scale: 0.93, y: 24 }}
+        transition={{ type: "spring", stiffness: 400, damping: 32 }}
         className="fixed inset-4 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-2xl z-50 rounded-2xl overflow-hidden"
         style={{
-          background: "var(--color-black-base)",
-          border: "1px solid var(--color-black-border)",
+          background: "var(--surface)",
+          boxShadow: "var(--shadow-modal)",
           maxHeight: "90vh",
         }}
       >
         {/* Header */}
         <div
-          className="p-6 border-b flex items-center justify-between"
-          style={{
-            background: "var(--color-black-surface)",
-            borderColor: "var(--color-black-border)",
-          }}
+          className="p-6 border-b border-(--color-black-border) flex items-center justify-between"
+          style={{ background: "var(--elevated)" }}
         >
           <h2
             className="text-2xl font-bold"
@@ -124,12 +131,14 @@ export default function EditProfileModal({ isOpen, onClose, profile }) {
               background: "var(--color-black-border)",
               color: "var(--text-secondary)",
             }}
+            aria-label="Close edit profile"
           >
             <svg
               className="w-5 h-5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path
                 strokeLinecap="round"
@@ -218,6 +227,28 @@ export default function EditProfileModal({ isOpen, onClose, profile }) {
             </div>
           </div>
 
+          {/* Upload Error */}
+          {uploadError && (
+            <div
+              className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2"
+              role="alert"
+            >
+              <svg
+                className="w-4 h-4 text-red-500 mt-0.5 shrink-0"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <p className="text-sm text-red-500">{uploadError}</p>
+            </div>
+          )}
+
           {/* Form Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -234,10 +265,9 @@ export default function EditProfileModal({ isOpen, onClose, profile }) {
                   setFormData({ ...formData, first_name: e.target.value })
                 }
                 required
-                className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1ed760]"
+                className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-primary/30 focus:border-green-primary border border-(--color-black-border) transition-colors"
                 style={{
-                  background: "var(--color-black-surface)",
-                  border: "1px solid var(--color-black-border)",
+                  background: "var(--elevated)",
                   color: "var(--text-primary)",
                 }}
               />
@@ -257,10 +287,9 @@ export default function EditProfileModal({ isOpen, onClose, profile }) {
                   setFormData({ ...formData, last_name: e.target.value })
                 }
                 required
-                className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1ed760]"
+                className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-primary/30 focus:border-green-primary border border-(--color-black-border) transition-colors"
                 style={{
-                  background: "var(--color-black-surface)",
-                  border: "1px solid var(--color-black-border)",
+                  background: "var(--elevated)",
                   color: "var(--text-primary)",
                 }}
               />
@@ -279,10 +308,9 @@ export default function EditProfileModal({ isOpen, onClose, profile }) {
                 onChange={(e) =>
                   setFormData({ ...formData, middle_name: e.target.value })
                 }
-                className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1ed760]"
+                className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-primary/30 focus:border-green-primary border border-(--color-black-border) transition-colors"
                 style={{
-                  background: "var(--color-black-surface)",
-                  border: "1px solid var(--color-black-border)",
+                  background: "var(--elevated)",
                   color: "var(--text-primary)",
                 }}
               />
@@ -301,10 +329,9 @@ export default function EditProfileModal({ isOpen, onClose, profile }) {
                 onChange={(e) =>
                   setFormData({ ...formData, phone_number: e.target.value })
                 }
-                className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1ed760]"
+                className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-primary/30 focus:border-green-primary border border-(--color-black-border) transition-colors"
                 style={{
-                  background: "var(--color-black-surface)",
-                  border: "1px solid var(--color-black-border)",
+                  background: "var(--elevated)",
                   color: "var(--text-primary)",
                 }}
               />
@@ -324,10 +351,9 @@ export default function EditProfileModal({ isOpen, onClose, profile }) {
                   setFormData({ ...formData, city: e.target.value })
                 }
                 required
-                className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1ed760]"
+                className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-primary/30 focus:border-green-primary border border-(--color-black-border) transition-colors"
                 style={{
-                  background: "var(--color-black-surface)",
-                  border: "1px solid var(--color-black-border)",
+                  background: "var(--elevated)",
                   color: "var(--text-primary)",
                 }}
               />
@@ -347,10 +373,9 @@ export default function EditProfileModal({ isOpen, onClose, profile }) {
                   setFormData({ ...formData, telegram_phone: e.target.value })
                 }
                 required
-                className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1ed760]"
+                className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-primary/30 focus:border-green-primary border border-(--color-black-border) transition-colors"
                 style={{
-                  background: "var(--color-black-surface)",
-                  border: "1px solid var(--color-black-border)",
+                  background: "var(--elevated)",
                   color: "var(--text-primary)",
                 }}
               />

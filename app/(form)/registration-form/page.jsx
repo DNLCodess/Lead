@@ -211,36 +211,37 @@ const RegistrationForm = () => {
     }
   };
 
-  // Manual clear function
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+
+  // Manual clear function — shows inline confirmation instead of browser confirm()
   const handleClearProgress = () => {
-    if (
-      confirm(
-        "Are you sure you want to clear your saved progress? This action cannot be undone."
-      )
-    ) {
-      clearFormStorage();
-      setFormData({
-        firstName: "",
-        lastName: "",
-        middleName: "",
-        country: "",
-        detectedCountry: "",
-        city: "",
-        phoneNumber: "",
-        telegramPhone: "",
-        email: "",
-        password: "",
-        confirmPassword: "",
-        profilePicture: null,
-      });
-      setPreviewImage(null);
-      setCurrentStep(1);
-      setHasRestoredData(false);
-      setSameAsTelegram(false);
-      setIsInitialLoad(false);
-      setGlobalError(null);
-      setFormErrors({});
-    }
+    setShowClearConfirm(true);
+  };
+
+  const confirmClearProgress = () => {
+    clearFormStorage();
+    setFormData({
+      firstName: "",
+      lastName: "",
+      middleName: "",
+      country: "",
+      detectedCountry: "",
+      city: "",
+      phoneNumber: "",
+      telegramPhone: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      profilePicture: null,
+    });
+    setPreviewImage(null);
+    setCurrentStep(1);
+    setHasRestoredData(false);
+    setSameAsTelegram(false);
+    setIsInitialLoad(false);
+    setGlobalError(null);
+    setFormErrors({});
+    setShowClearConfirm(false);
   };
 
   const containerVariants = {
@@ -551,26 +552,56 @@ const RegistrationForm = () => {
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-center justify-between gap-2 p-3 bg-[var(--accent-bg)] border border-[var(--color-green-primary)]/20 rounded-lg"
+                className="p-3 bg-(--accent-bg) border border-green-primary/20 rounded-lg"
               >
-                <div className="flex items-center gap-2">
-                  <RefreshCw className="w-4 h-4 text-[var(--color-green-primary)]" />
-                  <p className="text-sm text-[var(--text-secondary)]">
-                    <span className="font-medium text-[var(--color-green-primary)]">
-                      Progress restored:
-                    </span>{" "}
-                    Your previous data has been loaded
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleClearProgress}
-                  className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-                >
-                  Clear
-                </Button>
+                {showClearConfirm ? (
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <p className="text-sm text-(--text-secondary)">
+                      <span className="font-medium text-red-400">Clear all saved progress?</span>{" "}
+                      This cannot be undone.
+                    </p>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowClearConfirm(false)}
+                        className="text-xs text-(--text-muted) hover:text-(--text-primary)"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={confirmClearProgress}
+                        className="text-xs bg-red-500 hover:bg-red-600 text-white"
+                      >
+                        Yes, clear it
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <RefreshCw className="w-4 h-4 text-(--color-green-primary)" />
+                      <p className="text-sm text-(--text-secondary)">
+                        <span className="font-medium text-(--color-green-primary)">
+                          Progress restored:
+                        </span>{" "}
+                        Your previous data has been loaded
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleClearProgress}
+                      className="text-xs text-(--text-muted) hover:text-(--text-primary) shrink-0"
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                )}
               </motion.div>
             )}
 

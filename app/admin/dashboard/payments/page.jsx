@@ -245,11 +245,7 @@ export default function PaymentsPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-6 rounded-2xl"
-          style={{
-            background: "var(--color-black-surface)",
-            border: "1px solid var(--color-black-border)",
-          }}
+          className="card p-6 rounded-xl"
         >
           <div className="flex items-center justify-between mb-4">
             <div
@@ -278,11 +274,7 @@ export default function PaymentsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="p-6 rounded-2xl"
-          style={{
-            background: "var(--color-black-surface)",
-            border: "1px solid var(--color-black-border)",
-          }}
+          className="card p-6 rounded-xl"
         >
           <div className="flex items-center justify-between mb-4">
             <div
@@ -310,11 +302,7 @@ export default function PaymentsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="p-6 rounded-2xl"
-          style={{
-            background: "var(--color-black-surface)",
-            border: "1px solid var(--color-black-border)",
-          }}
+          className="card p-6 rounded-xl"
         >
           <div className="flex items-center justify-between mb-4">
             <div
@@ -342,11 +330,7 @@ export default function PaymentsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="p-6 rounded-2xl"
-          style={{
-            background: "var(--color-black-surface)",
-            border: "1px solid var(--color-black-border)",
-          }}
+          className="card p-6 rounded-xl"
         >
           <div className="flex items-center justify-between mb-4">
             <div
@@ -447,11 +431,7 @@ export default function PaymentsPage() {
 
       {/* Payments Table */}
       <div
-        className="rounded-2xl overflow-hidden"
-        style={{
-          background: "var(--color-black-surface)",
-          border: "1px solid var(--color-black-border)",
-        }}
+        className="card rounded-xl overflow-hidden"
       >
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -682,19 +662,11 @@ function PaymentDetailModal({ payment, onClose }) {
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl"
-          style={{
-            background: "var(--color-black-surface)",
-            border: "1px solid var(--color-black-border)",
-          }}
+          className="card w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl"
         >
           {/* Header */}
           <div
-            className="sticky top-0 px-6 py-4 border-b backdrop-blur-lg"
-            style={{
-              background: "var(--color-black-surface)",
-              borderColor: "var(--color-black-border)",
-            }}
+            className="sticky top-0 px-6 py-4 border-b border-(--color-black-border) backdrop-blur-lg bg-(--color-black-surface)"
           >
             <div className="flex items-center justify-between">
               <h2
@@ -750,8 +722,7 @@ function PaymentDetailModal({ payment, onClose }) {
 
             {/* Transaction Info */}
             <div
-              className="p-4 rounded-xl space-y-3"
-              style={{ background: "var(--color-black-elevated)" }}
+              className="card-elevated p-4 rounded-xl space-y-3"
             >
               <h3
                 className="font-bold mb-3"
@@ -827,8 +798,7 @@ function PaymentDetailModal({ payment, onClose }) {
 
             {/* Customer Info */}
             <div
-              className="p-4 rounded-xl space-y-3"
-              style={{ background: "var(--color-black-elevated)" }}
+              className="card-elevated p-4 rounded-xl space-y-3"
             >
               <h3
                 className="font-bold mb-3"
@@ -902,8 +872,7 @@ function PaymentDetailModal({ payment, onClose }) {
 
             {/* Dates */}
             <div
-              className="p-4 rounded-xl space-y-3"
-              style={{ background: "var(--color-black-elevated)" }}
+              className="card-elevated p-4 rounded-xl space-y-3"
             >
               <h3
                 className="font-bold mb-3"
@@ -958,8 +927,7 @@ function PaymentDetailModal({ payment, onClose }) {
             {/* Registration Data */}
             {payment.registration_data && (
               <div
-                className="p-4 rounded-xl"
-                style={{ background: "var(--color-black-elevated)" }}
+                className="card-elevated p-4 rounded-xl"
               >
                 <h3
                   className="font-bold mb-3"

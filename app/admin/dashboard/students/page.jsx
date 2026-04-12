@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
@@ -24,10 +24,17 @@ import {
 
 export default function StudentsPage() {
   const supabase = createClient();
+  const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterAccountType, setFilterAccountType] = useState("all");
   const [selectedStudent, setSelectedStudent] = useState(null);
+
+  // Debounce search input by 300ms
+  useEffect(() => {
+    const timer = setTimeout(() => setSearchQuery(searchInput), 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   // Fetch students
   const { data: students, isLoading } = useQuery({
@@ -150,8 +157,8 @@ export default function StudentsPage() {
           <input
             type="text"
             placeholder="Search students..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="w-full pl-12 pr-4 py-3 rounded-xl outline-none"
             style={{
               background: "var(--color-black-surface)",
@@ -195,13 +202,7 @@ export default function StudentsPage() {
       </div>
 
       {/* Students Table */}
-      <div
-        className="rounded-2xl overflow-hidden"
-        style={{
-          background: "var(--color-black-surface)",
-          border: "1px solid var(--color-black-border)",
-        }}
-      >
+      <div className="card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -256,28 +257,15 @@ export default function StudentsPage() {
             </thead>
             <tbody>
               {filteredStudents?.map((student, index) => (
-                <motion.tr
+                <tr
                   key={student.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="transition-colors"
-                  style={{
-                    borderBottom: "1px solid var(--color-black-border)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background =
-                      "var(--color-black-elevated)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "transparent";
-                  }}
+                  className="transition-colors duration-150 hover:bg-(--color-black-elevated) border-b border-(--color-black-border)"
                 >
                   {/* Student */}
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                        className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
                         style={{
                           background:
                             "linear-gradient(135deg, #1ed760, #16b455)",
@@ -409,14 +397,29 @@ export default function StudentsPage() {
                       View
                     </button>
                   </td>
-                </motion.tr>
+                </tr>
               ))}
             </tbody>
           </table>
 
           {filteredStudents?.length === 0 && (
-            <div className="text-center py-12">
-              <p style={{ color: "var(--text-muted)" }}>No students found</p>
+            <div className="text-center py-16 px-6">
+              <div
+                className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+                style={{ background: "var(--color-black-elevated)" }}
+              >
+                <Users className="w-8 h-8" style={{ color: "var(--text-muted)" }} />
+              </div>
+              <p className="font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
+                {searchQuery || filterStatus !== "all" || filterAccountType !== "all"
+                  ? "No students match your filters"
+                  : "No students yet"}
+              </p>
+              <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+                {searchQuery || filterStatus !== "all" || filterAccountType !== "all"
+                  ? "Try adjusting your search or filter criteria"
+                  : "Students will appear here once they register"}
+              </p>
             </div>
           )}
         </div>
@@ -449,19 +452,11 @@ function StudentDetailModal({ student, onClose }) {
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl"
-          style={{
-            background: "var(--color-black-surface)",
-            border: "1px solid var(--color-black-border)",
-          }}
+          className="card w-full max-w-2xl max-h-[90vh] overflow-y-auto"
         >
           {/* Header */}
           <div
-            className="sticky top-0 px-6 py-4 border-b backdrop-blur-lg"
-            style={{
-              background: "var(--color-black-surface)",
-              borderColor: "var(--color-black-border)",
-            }}
+            className="sticky top-0 px-6 py-4 border-b border-(--color-black-border) backdrop-blur-lg bg-(--color-black-surface)"
           >
             <div className="flex items-center justify-between">
               <h2
@@ -472,13 +467,16 @@ function StudentDetailModal({ student, onClose }) {
               </h2>
               <button
                 onClick={onClose}
-                className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-150 hover:bg-(--color-black-border)"
                 style={{
                   background: "var(--color-black-elevated)",
                   color: "var(--text-primary)",
                 }}
+                aria-label="Close student details"
               >
-                ✕
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
           </div>
@@ -488,7 +486,7 @@ function StudentDetailModal({ student, onClose }) {
             {/* Profile Info */}
             <div className="flex items-start gap-4">
               <div
-                className="w-20 h-20 rounded-2xl flex items-center justify-center flex-shrink-0"
+                className="w-20 h-20 rounded-2xl flex items-center justify-center shrink-0"
                 style={{
                   background: "linear-gradient(135deg, #1ed760, #16b455)",
                 }}
@@ -540,8 +538,7 @@ function StudentDetailModal({ student, onClose }) {
             {/* Info Grid */}
             <div className="grid grid-cols-2 gap-4">
               <div
-                className="p-4 rounded-xl"
-                style={{ background: "var(--color-black-elevated)" }}
+                className="card-elevated p-4"
               >
                 <p
                   className="text-sm mb-1"
@@ -558,8 +555,7 @@ function StudentDetailModal({ student, onClose }) {
               </div>
 
               <div
-                className="p-4 rounded-xl"
-                style={{ background: "var(--color-black-elevated)" }}
+                className="card-elevated p-4"
               >
                 <p
                   className="text-sm mb-1"
@@ -576,8 +572,7 @@ function StudentDetailModal({ student, onClose }) {
               </div>
 
               <div
-                className="p-4 rounded-xl"
-                style={{ background: "var(--color-black-elevated)" }}
+                className="card-elevated p-4"
               >
                 <p
                   className="text-sm mb-1"
@@ -594,8 +589,7 @@ function StudentDetailModal({ student, onClose }) {
               </div>
 
               <div
-                className="p-4 rounded-xl"
-                style={{ background: "var(--color-black-elevated)" }}
+                className="card-elevated p-4"
               >
                 <p
                   className="text-sm mb-1"
@@ -612,8 +606,7 @@ function StudentDetailModal({ student, onClose }) {
               </div>
 
               <div
-                className="p-4 rounded-xl"
-                style={{ background: "var(--color-black-elevated)" }}
+                className="card-elevated p-4"
               >
                 <p
                   className="text-sm mb-1"
@@ -630,8 +623,7 @@ function StudentDetailModal({ student, onClose }) {
               </div>
 
               <div
-                className="p-4 rounded-xl"
-                style={{ background: "var(--color-black-elevated)" }}
+                className="card-elevated p-4"
               >
                 <p
                   className="text-sm mb-1"
@@ -697,15 +689,14 @@ function StudentDetailModal({ student, onClose }) {
                   {student.payments.slice(0, 5).map((payment) => (
                     <div
                       key={payment.id}
-                      className="flex items-center justify-between p-3 rounded-xl"
-                      style={{ background: "var(--color-black-elevated)" }}
+                      className="card-elevated flex items-center justify-between p-3"
                     >
                       <div className="flex items-center gap-3">
                         <div
                           className="w-10 h-10 rounded-full flex items-center justify-center"
                           style={{
                             background:
-                              payment.status === "completed"
+                              payment.status === "successful"
                                 ? "#1ed76020"
                                 : "#f59e0b20",
                           }}
@@ -714,7 +705,7 @@ function StudentDetailModal({ student, onClose }) {
                             className="w-5 h-5"
                             style={{
                               color:
-                                payment.status === "completed"
+                                payment.status === "successful"
                                   ? "#1ed760"
                                   : "#f59e0b",
                             }}
@@ -740,11 +731,11 @@ function StudentDetailModal({ student, onClose }) {
                         className="px-3 py-1 rounded-full text-xs font-semibold"
                         style={{
                           background:
-                            payment.status === "completed"
+                            payment.status === "successful"
                               ? "#1ed76020"
                               : "#f59e0b20",
                           color:
-                            payment.status === "completed"
+                            payment.status === "successful"
                               ? "#1ed760"
                               : "#f59e0b",
                         }}

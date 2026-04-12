@@ -1,75 +1,3 @@
-// "use client";
-
-// import { motion, LayoutGroup } from "framer-motion";
-// import { LayoutDashboard, Users, CalendarDays } from "lucide-react";
-// import { useProfileStore } from "@/lib/store/profile-store";
-
-// const tabs = [
-//   {
-//     id: "overview",
-//     label: "Overview",
-//     icon: LayoutDashboard,
-//   },
-//   {
-//     id: "lecturers",
-//     label: "Lecturers",
-//     icon: Users,
-//   },
-//   {
-//     id: "calendar",
-//     label: "Learning Calendar",
-//     icon: CalendarDays,
-//   },
-// ];
-
-// export default function ProfileTabs() {
-//   const { activeTab, setActiveTab } = useProfileStore();
-
-//   return (
-//     <LayoutGroup>
-//       <div className="relative flex gap-2 mb-8 overflow-x-auto pb-2">
-//         {tabs.map((tab) => {
-//           const isActive = activeTab === tab.id;
-//           const Icon = tab.icon;
-
-//           return (
-//             <motion.button
-//               key={tab.id}
-//               onClick={() => setActiveTab(tab.id)}
-//               className="relative flex items-center gap-2 px-6 py-3 font-semibold whitespace-nowrap z-10"
-//               animate={{
-//                 color: isActive ? "#ffffff" : "var(--text-secondary)",
-//               }}
-//               transition={{ duration: 0.25, ease: "easeOut" }}
-//             >
-//               <Icon className="w-4 h-4" />
-//               {tab.label}
-
-//               {isActive && (
-//                 <motion.div
-//                   layoutId="activeTab"
-//                   className="absolute inset-0 -z-10"
-//                   style={{
-//                     background: "linear-gradient(135deg, #1ed760, #16b455)",
-//                     borderRadius: "1.5rem",
-//                   }}
-//                   transition={{
-//                     type: "spring",
-//                     stiffness: 520,
-//                     damping: 38,
-//                   }}
-//                 />
-//               )}
-//             </motion.button>
-//           );
-//         })}
-//       </div>
-//     </LayoutGroup>
-//   );
-// }
-
-// components/shared/profile/tabs.jsx
-
 "use client";
 
 import { motion } from "framer-motion";
@@ -108,13 +36,15 @@ export default function ProfileTabs() {
   };
 
   return (
-    <div className="mb-8">
+    <div className="mb-8 pt-6">
+      {/* Tab container — outer radius 1rem, gap 6px, so inner should be ~10px */}
       <div
-        className="flex items-center gap-2 p-1.5 rounded-xl backdrop-blur-sm"
+        className="flex items-center gap-1.5 p-1.5"
         style={{
-          background: "var(--color-black-surface)",
-          border: "1px solid var(--color-black-border)",
-          boxShadow: "var(--shadow-md)",
+          background: "var(--surface)",
+          border: "1px solid var(--border-color)",
+          borderRadius: "var(--radius-card)",
+          boxShadow: "var(--shadow-card)",
         }}
       >
         {tabs.map((tab) => {
@@ -125,83 +55,65 @@ export default function ProfileTabs() {
             <button
               key={tab.id}
               onClick={() => handleTabChange(tab.id)}
-              className="relative flex-1 px-6 py-3.5 rounded-lg font-semibold text-sm transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+              className="relative flex-1 px-6 py-3.5 font-semibold text-sm transition-colors duration-200 active:scale-[0.98]"
               style={{
-                color: isActive
-                  ? "var(--text-primary)"
-                  : "var(--text-secondary)",
+                color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
                 fontFamily: "var(--font-satoshi)",
+                /* 10px = 16px outer − 6px gap: correct nested radius */
+                borderRadius: "10px",
               }}
             >
-              {/* Active background with animated border */}
+              {/* Active pill — elevation only, no border */}
               {isActive && (
                 <motion.div
                   layoutId="activeTab"
-                  className="absolute inset-0 rounded-lg"
+                  className="absolute inset-0"
                   style={{
-                    background: "var(--color-black-elevated)",
-                    border: "1.5px solid var(--color-green-primary)",
-                    boxShadow: "0 0 20px rgba(30, 215, 96, 0.2)",
+                    borderRadius: "10px",
+                    background: "var(--elevated)",
+                    boxShadow:
+                      "inset 0 1px 0 rgba(255,255,255,0.07), 0 0 0 1px rgba(30,215,96,0.18), 0 4px 12px rgba(30,215,96,0.08)",
                   }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 500,
-                    damping: 30,
-                  }}
+                  transition={{ type: "spring", stiffness: 500, damping: 35 }}
                 />
               )}
 
-              {/* Hover effect for inactive tabs */}
+              {/* Hover state */}
               {!isActive && (
                 <div
-                  className="absolute inset-0 rounded-lg opacity-0 hover:opacity-100 transition-opacity duration-200"
-                  style={{
-                    background: "var(--color-black-border)",
-                  }}
+                  className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-150"
+                  style={{ borderRadius: "10px", background: "var(--elevated)" }}
                 />
               )}
 
-              {/* Tab content */}
+              {/* Content */}
               <span className="relative z-10 flex items-center justify-center gap-2.5">
                 <Icon
-                  className="w-5 h-5 transition-colors duration-200"
+                  className="w-4 h-4 transition-colors duration-200"
                   style={{
-                    color: isActive
-                      ? "var(--color-green-primary)"
-                      : "var(--text-muted)",
+                    color: isActive ? "var(--color-green-primary)" : "var(--text-muted)",
                   }}
                 />
                 <span className="hidden sm:inline">{tab.label}</span>
               </span>
 
-              {/* Active indicator dot (mobile) */}
+              {/* Green underline on active — replaces the border box */}
               {isActive && (
                 <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute -top-1 -right-1 w-2 h-2 rounded-full sm:hidden"
+                  layoutId="activeTabLine"
+                  className="absolute bottom-1.5 left-1/2 -translate-x-1/2 h-0.5 rounded-full"
                   style={{
+                    width: "32px",
                     background: "var(--color-green-primary)",
-                    boxShadow: "0 0 10px rgba(30, 215, 96, 0.5)",
+                    boxShadow: "0 0 8px rgba(30,215,96,0.6)",
                   }}
+                  transition={{ type: "spring", stiffness: 500, damping: 35 }}
                 />
               )}
             </button>
           );
         })}
       </div>
-
-      {/* Active tab indicator line (optional decorative element) */}
-      <motion.div
-        className="mt-1 h-0.5 rounded-full"
-        style={{
-          background:
-            "linear-gradient(90deg, var(--color-green-primary), var(--color-green-soft))",
-        }}
-        initial={{ width: 0, opacity: 0 }}
-        animate={{ width: "100%", opacity: 0.3 }}
-        transition={{ duration: 0.3 }}
-      />
     </div>
   );
 }

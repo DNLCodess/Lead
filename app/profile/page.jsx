@@ -43,15 +43,15 @@ export default function ProfilePage() {
     const checkAuth = async () => {
       try {
         const {
-          data: { session },
-        } = await supabase.auth.getSession();
+          data: { user },
+        } = await supabase.auth.getUser();
 
-        if (!session) {
+        if (!user) {
           router.push("/auth/login");
           return;
         }
 
-        setUserId(session.user.id);
+        setUserId(user.id);
       } catch (error) {
         console.error("Auth check failed:", error);
         router.push("/auth/login");

@@ -38,7 +38,7 @@ export function useVerifyWeekPayment() {
   return useMutation({
     mutationFn: async (transactionId) => {
       const response = await fetch(
-        `/api/payment/verify-week-payment?transaction_id=${transactionId}`,
+        `/api/payment/verify/week?transaction_id=${transactionId}`,
         {
           method: "GET",
           headers: {

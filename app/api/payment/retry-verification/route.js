@@ -19,20 +19,19 @@ export async function POST(request) {
       );
     }
 
-    console.log("🔄 Retrying verification for:", txRef);
 
     // Get authenticated user
     const supabase = await createClient();
     const {
-      data: { session },
+      data: { user },
       error: authError,
-    } = await supabase.auth.getSession();
+    } = await supabase.auth.getUser();
 
-    if (authError || !session?.user) {
+    if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const userId = session.user.id;
+    const userId = user.id;
 
     // Get payment record
     const { data: payment, error: paymentError } = await supabaseAdmin
@@ -53,7 +52,6 @@ export async function POST(request) {
       .eq("payment_id", payment.id);
 
     if (existingWeeks && existingWeeks.length > 0) {
-      console.log("✅ Payment already processed");
       return NextResponse.json({
         success: true,
         alreadyProcessed: true,
@@ -122,7 +120,6 @@ export async function POST(request) {
       week_number: weekNumber,
       amount: payment.amount / weeksToUnlock.length,
       currency: payment.currency,
-      payment_ref: payment.tx_ref,
       unlocked_at: new Date().toISOString(),
     }));
 
@@ -131,7 +128,6 @@ export async function POST(request) {
       .insert(weekRecords);
 
     if (insertError) {
-      console.error("❌ Failed to unlock weeks:", insertError);
       throw new Error("Failed to unlock weeks");
     }
 
@@ -139,20 +135,16 @@ export async function POST(request) {
     await supabaseAdmin
       .from("payments")
       .update({
-        status: "completed",
+        status: "successful",
         verified_at: new Date().toISOString(),
-        payment_meta: {
-          ...payment.payment_meta,
+        flw_response: {
+          ...(payment.flw_response || {}),
           manual_retry: true,
           retry_at: new Date().toISOString(),
         },
       })
       .eq("id", payment.id);
 
-    console.log("✅ Retry successful:", {
-      paymentId: payment.id,
-      weeksUnlocked: weeksToUnlock.length,
-    });
 
     return NextResponse.json({
       success: true,

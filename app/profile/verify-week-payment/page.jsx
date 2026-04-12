@@ -1,10 +1,47 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion } from "framer-motion";
-import { CheckCircle2, XCircle, Loader2, AlertCircle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { CheckCircle2, XCircle, Loader2, AlertCircle, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+const PHASES = [
+  { label: "Foundations", range: [1, 13], color: "#3b82f6" },
+  { label: "Core Concepts", range: [14, 26], color: "#8b5cf6" },
+  { label: "Advanced Practice", range: [27, 39], color: "#f59e0b" },
+  { label: "Mastery", range: [40, 52], color: "#1ed760" },
+];
+
+function getHighestPhase(weeks) {
+  if (!weeks?.length) return null;
+  const maxWeek = Math.max(...weeks);
+  for (let i = PHASES.length - 1; i >= 0; i--) {
+    if (maxWeek >= PHASES[i].range[0]) return PHASES[i];
+  }
+  return PHASES[0];
+}
+
+function useConfettiPieces(active) {
+  return useMemo(() => {
+    if (!active || typeof window === "undefined") return [];
+    return Array.from({ length: 30 }, (_, i) => ({
+      id: i,
+      startX: window.innerWidth / 2,
+      startY: window.innerHeight / 2,
+      endX: Math.random() * window.innerWidth,
+      endY: Math.random() * window.innerHeight,
+      size: Math.random() * 12 + 5,
+      rotate: Math.random() * 360,
+      color: ["#1ed760", "#ffd700", "#ff6b6b", "#4ecdc4", "#ff9ff3", "#3b82f6"][
+        Math.floor(Math.random() * 6)
+      ],
+      isCircle: Math.random() > 0.5,
+      duration: 1.2 + Math.random() * 0.8,
+    }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
+}
 
 export default function VerifyWeekPaymentPage() {
   const router = useRouter();
@@ -13,6 +50,8 @@ export default function VerifyWeekPaymentPage() {
   const [message, setMessage] = useState("Verifying your payment...");
   const [errorDetails, setErrorDetails] = useState(null);
   const [unlockedWeeks, setUnlockedWeeks] = useState([]);
+  const confettiPieces = useConfettiPieces(verificationStatus === "success");
+  const highestPhase = getHighestPhase(unlockedWeeks);
 
   useEffect(() => {
     const verifyPayment = async () => {
@@ -157,62 +196,115 @@ export default function VerifyWeekPaymentPage() {
         {/* Success State */}
         {verificationStatus === "success" && (
           <div className="text-center">
+            {/* Confetti burst (E9) */}
+            <div className="fixed inset-0 pointer-events-none z-50">
+              {confettiPieces.map((piece) => (
+                <motion.div
+                  key={piece.id}
+                  initial={{ x: piece.startX, y: piece.startY, scale: 0, rotate: 0, opacity: 1 }}
+                  animate={{ x: piece.endX, y: piece.endY, scale: [0, 1, 0.8, 0], rotate: piece.rotate, opacity: [1, 1, 0.5, 0] }}
+                  transition={{ duration: piece.duration, ease: "easeOut" }}
+                  className="absolute"
+                  style={{
+                    width: piece.size,
+                    height: piece.size,
+                    background: piece.color,
+                    borderRadius: piece.isCircle ? "50%" : "2px",
+                  }}
+                />
+              ))}
+            </div>
+
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 200 }}
-              className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center"
-              style={{ background: "rgba(30, 215, 96, 0.2)" }}
+              className="w-20 h-20 mx-auto mb-5 rounded-2xl flex items-center justify-center"
+              style={{
+                background: "linear-gradient(135deg, rgba(30,215,96,0.2), rgba(30,215,96,0.1))",
+                border: "1px solid rgba(30,215,96,0.3)",
+              }}
             >
-              <CheckCircle2
-                className="w-10 h-10"
-                style={{ color: "var(--color-green-primary)" }}
-              />
+              <Trophy className="w-10 h-10" style={{ color: "#1ed760" }} />
             </motion.div>
-            <h1
-              className="text-2xl font-bold mb-2"
-              style={{ color: "var(--color-green-primary)" }}
-            >
-              Payment Successful!
-            </h1>
-            <p className="mb-4" style={{ color: "var(--text-secondary)" }}>
-              {message}
-            </p>
 
-            {/* Show unlocked weeks */}
-            {unlockedWeeks.length > 0 && (
-              <div
-                className="p-4 rounded-lg mb-4"
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <h1 className="text-2xl font-bold mb-1" style={{ color: "#1ed760" }}>
+                Weeks Unlocked!
+              </h1>
+              <p className="mb-5" style={{ color: "var(--text-secondary)" }}>
+                {message}
+              </p>
+            </motion.div>
+
+            {/* Phase milestone (E9) */}
+            {highestPhase && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35 }}
+                className="p-3 rounded-xl mb-4 flex items-center gap-3"
                 style={{
-                  background: "var(--color-black-elevated)",
+                  background: `${highestPhase.color}12`,
+                  border: `1px solid ${highestPhase.color}30`,
+                }}
+              >
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                  style={{ background: `${highestPhase.color}20` }}
+                >
+                  <CheckCircle2 className="w-4 h-4" style={{ color: highestPhase.color }} />
+                </div>
+                <div className="text-left">
+                  <p className="text-xs font-bold" style={{ color: highestPhase.color }}>
+                    {highestPhase.label}
+                  </p>
+                  <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                    You&apos;re in this phase
+                  </p>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Unlocked weeks */}
+            {unlockedWeeks.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.45 }}
+                className="p-4 rounded-xl mb-5"
+                style={{
+                  background: "var(--elevated)",
                   border: "1px solid var(--color-black-border)",
                 }}
               >
-                <p
-                  className="text-sm mb-2"
-                  style={{ color: "var(--text-secondary)" }}
-                >
-                  Unlocked Weeks:
+                <p className="text-xs font-semibold mb-3 uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>
+                  Now Available
                 </p>
                 <div className="flex flex-wrap gap-2 justify-center">
                   {unlockedWeeks.map((week) => (
                     <span
                       key={week}
-                      className="px-3 py-1 rounded-full text-sm font-semibold"
+                      className="px-3 py-1 rounded-full text-sm font-bold"
                       style={{
-                        background: "var(--color-green-primary)",
-                        color: "#ffffff",
+                        background: "rgba(30, 215, 96, 0.15)",
+                        color: "#1ed760",
+                        border: "1px solid rgba(30, 215, 96, 0.3)",
                       }}
                     >
                       Week {week}
                     </span>
                   ))}
                 </div>
-              </div>
+              </motion.div>
             )}
 
             <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-              Redirecting to your calendar...
+              Taking you to your calendar...
             </p>
           </div>
         )}

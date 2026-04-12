@@ -78,6 +78,18 @@ export default function AdminDashboardLayout({ children }) {
     setSidebarOpen(false);
   }, [pathname]);
 
+  // Prevent body scroll when mobile sidebar is open
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [sidebarOpen]);
+
   // Memoize filtered navigation to prevent re-calculation
   const filteredNavigation = useMemo(() => {
     if (!adminData?.permissions) return [];
@@ -139,21 +151,20 @@ export default function AdminDashboardLayout({ children }) {
       {/* Sidebar - Fixed on Desktop, Slide-in on Mobile */}
       <aside
         className={`
-          fixed top-0 left-0 h-full w-72 z-50 
+          fixed top-0 left-0 h-full w-72 z-50
           lg:translate-x-0 transition-transform duration-300 ease-in-out
-          ${
-            sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-          }
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
         `}
         style={{
-          background: "var(--color-black-surface)",
-          borderRight: "1px solid var(--color-black-border)",
+          background: "var(--surface)",
+          borderRight: "1px solid var(--border-color)",
+          boxShadow: "var(--shadow-lg)",
         }}
       >
         {/* Logo */}
         <div
-          className="h-20 flex items-center justify-between px-6 border-b flex-shrink-0"
-          style={{ borderColor: "var(--color-black-border)" }}
+          className="h-20 flex items-center justify-between px-6 border-b shrink-0"
+          style={{ borderColor: "var(--border-color)" }}
         >
           <div className="flex items-center gap-3">
             <div
@@ -183,8 +194,9 @@ export default function AdminDashboardLayout({ children }) {
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden"
             style={{ color: "var(--text-muted)" }}
+            aria-label="Close sidebar"
           >
-            <X className="w-6 h-6" />
+            <X className="w-6 h-6" aria-hidden="true" />
           </button>
         </div>
 
@@ -198,58 +210,39 @@ export default function AdminDashboardLayout({ children }) {
             const isActive = pathname === item.href;
 
             return (
-              <motion.a
+              <a
                 key={item.name}
                 href={item.href}
-                whileHover={{ x: 4 }}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all"
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors duration-150 ${
+                  isActive
+                    ? "text-white"
+                    : "text-(--text-primary) hover:bg-(--color-black-elevated)"
+                }`}
                 style={{
                   background: isActive
                     ? "var(--color-green-primary)"
-                    : "transparent",
-                  color: isActive ? "#ffffff" : "var(--text-primary)",
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background =
-                      "var(--color-black-elevated)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = "transparent";
-                  }
+                    : undefined,
                 }}
               >
-                <Icon className="w-5 h-5" />
-                <span className="font-medium">{item.name}</span>
-              </motion.a>
+                <Icon className="w-5 h-5 shrink-0" />
+                <span>{item.name}</span>
+              </a>
             );
           })}
         </nav>
 
         {/* User Section */}
         <div
-          className="absolute bottom-0 left-0 right-0 p-4 border-t flex-shrink-0"
+          className="absolute bottom-0 left-0 right-0 p-4 border-t shrink-0"
           style={{ borderColor: "var(--color-black-border)", height: "80px" }}
         >
           <div className="relative">
             <button
               onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="w-full flex items-center gap-3 p-3 rounded-xl transition-all"
-              style={{
-                background: "var(--color-black-elevated)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "var(--color-black-border)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background =
-                  "var(--color-black-elevated)";
-              }}
+              className="w-full flex items-center gap-3 p-3 rounded-xl transition-colors duration-150 bg-(--color-black-elevated) hover:bg-(--color-black-border)"
             >
               <div
-                className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
                 style={{
                   background: "linear-gradient(135deg, #1ed760, #16b455)",
                 }}
@@ -275,7 +268,7 @@ export default function AdminDashboardLayout({ children }) {
                 </p>
               </div>
               <ChevronDown
-                className={`w-5 h-5 transition-transform flex-shrink-0 ${
+                className={`w-5 h-5 transition-transform shrink-0 ${
                   userMenuOpen ? "rotate-180" : ""
                 }`}
                 style={{ color: "var(--text-muted)" }}
@@ -299,15 +292,7 @@ export default function AdminDashboardLayout({ children }) {
                   <button
                     onClick={logout}
                     disabled={isLoggingOut}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-left transition-all disabled:opacity-50"
-                    style={{ color: "var(--text-primary)" }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background =
-                        "var(--color-black-border)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "transparent";
-                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-(--color-black-border) disabled:opacity-50 text-(--text-primary)"
                   >
                     <LogOut className="w-5 h-5" />
                     <span className="font-medium">
@@ -325,7 +310,7 @@ export default function AdminDashboardLayout({ children }) {
       <div className="lg:ml-72 min-h-screen flex flex-col">
         {/* Top Bar */}
         <header
-          className="h-20 sticky top-0 z-30 flex items-center justify-between px-6 border-b backdrop-blur-lg flex-shrink-0"
+          className="h-20 sticky top-0 z-30 flex items-center justify-between px-6 border-b backdrop-blur-lg shrink-0"
           style={{
             background: "rgba(10, 13, 18, 0.8)",
             borderColor: "var(--color-black-border)",
@@ -335,8 +320,9 @@ export default function AdminDashboardLayout({ children }) {
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden"
             style={{ color: "var(--text-primary)" }}
+            aria-label="Open navigation menu"
           >
-            <Menu className="w-6 h-6" />
+            <Menu className="w-6 h-6" aria-hidden="true" />
           </button>
 
           <div className="flex items-center gap-4 ml-auto">

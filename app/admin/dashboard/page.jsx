@@ -51,6 +51,7 @@ export default function AdminDashboardPage() {
       trend: "up",
       icon: Users,
       color: "#1ed760",
+      href: "/admin/dashboard/students",
     },
     {
       label: "Revenue (NGN)",
@@ -61,6 +62,7 @@ export default function AdminDashboardPage() {
       trend: "up",
       icon: DollarSign,
       color: "#f59e0b",
+      href: "/admin/dashboard/payments",
     },
     {
       label: "Revenue (USD)",
@@ -71,6 +73,7 @@ export default function AdminDashboardPage() {
       trend: "up",
       icon: CreditCard,
       color: "#8b5cf6",
+      href: "/admin/dashboard/payments",
     },
     {
       label: "Week Unlocks",
@@ -79,6 +82,7 @@ export default function AdminDashboardPage() {
       trend: "neutral",
       icon: BookOpen,
       color: "#3b82f6",
+      href: "/admin/dashboard/students",
     },
   ];
 
@@ -105,16 +109,13 @@ export default function AdminDashboardPage() {
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <motion.div
+            <motion.a
               key={stat.label}
+              href={stat.href}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="p-6 rounded-2xl"
-              style={{
-                background: "var(--color-black-surface)",
-                border: "1px solid var(--color-black-border)",
-              }}
+              className="card card-interactive p-6 block group"
             >
               <div className="flex items-start justify-between mb-4">
                 <div
@@ -144,10 +145,13 @@ export default function AdminDashboardPage() {
               >
                 {stat.value}
               </p>
-              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                {stat.change}
-              </p>
-            </motion.div>
+              <div className="flex items-center justify-between">
+                <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                  {stat.change}
+                </p>
+                <ArrowUpRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity duration-150" style={{ color: stat.color }} />
+              </div>
+            </motion.a>
           );
         })}
       </div>
@@ -159,11 +163,7 @@ export default function AdminDashboardPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="p-6 rounded-2xl"
-          style={{
-            background: "var(--color-black-surface)",
-            border: "1px solid var(--color-black-border)",
-          }}
+          className="card p-6"
         >
           <h3
             className="text-xl font-bold mb-4"
@@ -172,79 +172,47 @@ export default function AdminDashboardPage() {
             Student Distribution
           </h3>
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ background: "#1ed760" }}
-                />
-                <span style={{ color: "var(--text-primary)" }}>
-                  Nigerian Students
-                </span>
+          {(() => {
+            const total = stats?.students?.total || 0;
+            const rows = [
+              { label: "Nigerian", value: stats?.students?.nigerian || 0, color: "#1ed760" },
+              { label: "International", value: stats?.students?.international || 0, color: "#3b82f6" },
+              { label: "Active", value: stats?.students?.active || 0, color: "#f59e0b" },
+              { label: "Inactive", value: stats?.students?.inactive || 0, color: "#ef4444" },
+            ];
+            return (
+              <div className="space-y-4">
+                {rows.map((row) => {
+                  const pct = total > 0 ? Math.round((row.value / total) * 100) : 0;
+                  return (
+                    <div key={row.label}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: row.color }} />
+                          <span className="text-sm" style={{ color: "var(--text-primary)" }}>{row.label}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs" style={{ color: "var(--text-muted)" }}>{pct}%</span>
+                          <span className="font-bold text-sm tabular-nums" style={{ color: "var(--text-primary)" }}>
+                            {row.value}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--elevated)" }}>
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${pct}%` }}
+                          transition={{ duration: 0.8, ease: "easeOut", delay: 0.5 }}
+                          className="h-full rounded-full"
+                          style={{ background: row.color }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <span
-                className="font-bold"
-                style={{ color: "var(--text-primary)" }}
-              >
-                {stats?.students?.nigerian || 0}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ background: "#3b82f6" }}
-                />
-                <span style={{ color: "var(--text-primary)" }}>
-                  International Students
-                </span>
-              </div>
-              <span
-                className="font-bold"
-                style={{ color: "var(--text-primary)" }}
-              >
-                {stats?.students?.international || 0}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ background: "#f59e0b" }}
-                />
-                <span style={{ color: "var(--text-primary)" }}>
-                  Active Students
-                </span>
-              </div>
-              <span
-                className="font-bold"
-                style={{ color: "var(--text-primary)" }}
-              >
-                {stats?.students?.active || 0}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ background: "#ef4444" }}
-                />
-                <span style={{ color: "var(--text-primary)" }}>
-                  Inactive Students
-                </span>
-              </div>
-              <span
-                className="font-bold"
-                style={{ color: "var(--text-primary)" }}
-              >
-                {stats?.students?.inactive || 0}
-              </span>
-            </div>
-          </div>
+            );
+          })()}
         </motion.div>
 
         {/* Payment Statistics */}
@@ -252,11 +220,7 @@ export default function AdminDashboardPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="p-6 rounded-2xl"
-          style={{
-            background: "var(--color-black-surface)",
-            border: "1px solid var(--color-black-border)",
-          }}
+          className="card p-6"
         >
           <h3
             className="text-xl font-bold mb-4"
@@ -265,72 +229,67 @@ export default function AdminDashboardPage() {
             Payment Status
           </h3>
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+          {(() => {
+            const totalPayments =
+              (stats?.payments?.successful || 0) +
+              (stats?.payments?.pending || 0) +
+              (stats?.payments?.failed || 0);
+            const paymentRows = [
+              { label: "Successful", value: stats?.payments?.successful || 0, color: "#1ed760" },
+              { label: "Pending", value: stats?.payments?.pending || 0, color: "#f59e0b" },
+              { label: "Failed", value: stats?.payments?.failed || 0, color: "#ef4444" },
+            ];
+            return (
+              <>
+                <div className="space-y-4">
+                  {paymentRows.map((row) => {
+                    const pct = totalPayments > 0 ? Math.round((row.value / totalPayments) * 100) : 0;
+                    return (
+                      <div key={row.label}>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: row.color }} />
+                            <span className="text-sm" style={{ color: "var(--text-primary)" }}>{row.label}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs" style={{ color: "var(--text-muted)" }}>{pct}%</span>
+                            <span className="font-bold text-sm tabular-nums" style={{ color: "var(--text-primary)" }}>
+                              {row.value}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--elevated)" }}>
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${pct}%` }}
+                            transition={{ duration: 0.8, ease: "easeOut", delay: 0.6 }}
+                            className="h-full rounded-full"
+                            style={{ background: row.color }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
                 <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ background: "#1ed760" }}
-                />
-                <span style={{ color: "var(--text-primary)" }}>Successful</span>
-              </div>
-              <span
-                className="font-bold"
-                style={{ color: "var(--text-primary)" }}
-              >
-                {stats?.payments?.successful || 0}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ background: "#f59e0b" }}
-                />
-                <span style={{ color: "var(--text-primary)" }}>Pending</span>
-              </div>
-              <span
-                className="font-bold"
-                style={{ color: "var(--text-primary)" }}
-              >
-                {stats?.payments?.pending || 0}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ background: "#ef4444" }}
-                />
-                <span style={{ color: "var(--text-primary)" }}>Failed</span>
-              </div>
-              <span
-                className="font-bold"
-                style={{ color: "var(--text-primary)" }}
-              >
-                {stats?.payments?.failed || 0}
-              </span>
-            </div>
-
-            <div
-              className="pt-4 mt-4 border-t"
-              style={{ borderColor: "var(--color-black-border)" }}
-            >
-              <div className="flex items-center justify-between">
-                <span style={{ color: "var(--text-secondary)" }}>
-                  Average Transaction
-                </span>
-                <span
-                  className="font-bold"
-                  style={{ color: "var(--color-green-primary)" }}
+                  className="pt-4 mt-4 border-t"
+                  style={{ borderColor: "var(--color-black-border)" }}
                 >
-                  ₦{(stats?.payments?.averageTransaction || 0).toLocaleString()}
-                </span>
-              </div>
-            </div>
-          </div>
+                  <div className="flex items-center justify-between">
+                    <span style={{ color: "var(--text-secondary)" }}>
+                      Average Transaction
+                    </span>
+                    <span
+                      className="font-bold"
+                      style={{ color: "var(--color-green-primary)" }}
+                    >
+                      ₦{(stats?.payments?.averageTransaction || 0).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
         </motion.div>
       </div>
 
@@ -341,11 +300,7 @@ export default function AdminDashboardPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="p-6 rounded-2xl"
-          style={{
-            background: "var(--color-black-surface)",
-            border: "1px solid var(--color-black-border)",
-          }}
+          className="card p-6"
         >
           <div className="flex items-center justify-between mb-4">
             <h3
@@ -365,13 +320,17 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="space-y-3">
+            {!stats?.recentActivity?.recentStudents?.length && (
+              <p className="text-sm text-center py-6" style={{ color: "var(--text-muted)" }}>
+                No students registered yet
+              </p>
+            )}
             {stats?.recentActivity?.recentStudents
               ?.slice(0, 5)
               .map((student) => (
                 <div
                   key={student.id}
-                  className="flex items-center gap-3 p-3 rounded-xl"
-                  style={{ background: "var(--color-black-elevated)" }}
+                  className="card-elevated flex items-center gap-3 p-3"
                 >
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center"
@@ -411,11 +370,7 @@ export default function AdminDashboardPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
-          className="p-6 rounded-2xl"
-          style={{
-            background: "var(--color-black-surface)",
-            border: "1px solid var(--color-black-border)",
-          }}
+          className="card p-6"
         >
           <div className="flex items-center justify-between mb-4">
             <h3
@@ -435,19 +390,23 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="space-y-3">
+            {!stats?.recentActivity?.recentPayments?.length && (
+              <p className="text-sm text-center py-6" style={{ color: "var(--text-muted)" }}>
+                No payments recorded yet
+              </p>
+            )}
             {stats?.recentActivity?.recentPayments
               ?.slice(0, 5)
               .map((payment) => (
                 <div
                   key={payment.id}
-                  className="flex items-center gap-3 p-3 rounded-xl"
-                  style={{ background: "var(--color-black-elevated)" }}
+                  className="card-elevated flex items-center gap-3 p-3"
                 >
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center"
                     style={{
                       background:
-                        payment.status === "completed"
+                        payment.status === "successful"
                           ? "#1ed76020"
                           : payment.status === "pending"
                           ? "#f59e0b20"
@@ -458,7 +417,7 @@ export default function AdminDashboardPage() {
                       className="w-5 h-5"
                       style={{
                         color:
-                          payment.status === "completed"
+                          payment.status === "successful"
                             ? "#1ed760"
                             : payment.status === "pending"
                             ? "#f59e0b"
@@ -483,16 +442,16 @@ export default function AdminDashboardPage() {
                   </div>
                   <div className="text-right">
                     <div
-                      className="text-xs px-2 py-1 rounded-full"
+                      className="text-xs px-2 py-1 rounded-full capitalize"
                       style={{
                         background:
-                          payment.status === "completed"
+                          payment.status === "successful"
                             ? "#1ed76020"
                             : payment.status === "pending"
                             ? "#f59e0b20"
                             : "#ef444420",
                         color:
-                          payment.status === "completed"
+                          payment.status === "successful"
                             ? "#1ed760"
                             : payment.status === "pending"
                             ? "#f59e0b"

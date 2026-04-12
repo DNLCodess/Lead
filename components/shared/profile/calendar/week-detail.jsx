@@ -3,25 +3,54 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useProfileStore } from "@/lib/store/profile-store";
+import { Lock, Unlock, ExternalLink, BookOpen, MessageCircle, PenLine, ChevronRight } from "lucide-react";
 import {
   useWeekContent,
   useWeekNotes,
   useSaveWeekNotes,
 } from "@/hooks/use-profile";
 
+// Generate confetti pieces once — not on every frame
+function useConfettiPieces() {
+  return useMemo(() => {
+    if (typeof window === "undefined") return [];
+    return Array.from({ length: 20 }, (_, i) => ({
+      id: i,
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      size: Math.random() * 10 + 5,
+      rotate: Math.random() * 360,
+      color: ["#1ed760", "#ffd700", "#ff6b6b", "#4ecdc4", "#ff9ff3"][
+        Math.floor(Math.random() * 5)
+      ],
+      isCircle: Math.random() > 0.5,
+    }));
+  }, []);
+}
+
 export default function WeekDetailModal({ weekNumber, profile, isUnlocked }) {
   const { closeWeekModal } = useProfileStore();
   const [notes, setNotes] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [showConfetti, setShowConfetti] = useState(false);
+
+  const confettiPieces = useConfettiPieces();
 
   const { data: weekContent, isLoading: contentLoading } =
     useWeekContent(weekNumber);
   const { data: weekNotes } = useWeekNotes(profile?.user_id, weekNumber);
   const saveNotesMutation = useSaveWeekNotes();
+
+  // Close on Escape key (U3)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") closeWeekModal();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [closeWeekModal]);
 
   // Initialize notes from saved data
   useEffect(() => {
@@ -33,16 +62,13 @@ export default function WeekDetailModal({ weekNumber, profile, isUnlocked }) {
   // Reset success message after 3 seconds
   useEffect(() => {
     if (saveSuccess) {
-      const timer = setTimeout(() => {
-        setSaveSuccess(false);
-      }, 3000);
+      const timer = setTimeout(() => setSaveSuccess(false), 3000);
       return () => clearTimeout(timer);
     }
   }, [saveSuccess]);
 
   const handleSaveNotes = async () => {
     if (!notes.trim()) return;
-
     setIsSaving(true);
     try {
       await saveNotesMutation.mutateAsync({
@@ -52,15 +78,22 @@ export default function WeekDetailModal({ weekNumber, profile, isUnlocked }) {
         notes: notes.trim(),
       });
       setSaveSuccess(true);
-      setShowConfetti(true);
-
-      // Hide confetti after animation
-      setTimeout(() => setShowConfetti(false), 2000);
     } catch (error) {
       console.error("Failed to save notes:", error);
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleScrollToPayment = () => {
+    closeWeekModal();
+    // Give the modal exit animation time to complete before scrolling
+    setTimeout(() => {
+      document.getElementById("payment-widget")?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }, 200);
   };
 
   return (
@@ -74,14 +107,14 @@ export default function WeekDetailModal({ weekNumber, profile, isUnlocked }) {
         className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50"
       />
 
-      {/* Success Toast */}
+      {/* Save success toast */}
       <AnimatePresence>
         {saveSuccess && (
           <motion.div
             initial={{ opacity: 0, y: -50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className="fixed top-8 left-1/2 -translate-x-1/2 z-[60] px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3"
+            className="fixed top-8 left-1/2 -translate-x-1/2 z-60 px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3"
             style={{
               background: "linear-gradient(135deg, #1ed760, #16b455)",
               boxShadow: "0 10px 40px rgba(30, 215, 96, 0.4)",
@@ -92,85 +125,26 @@ export default function WeekDetailModal({ weekNumber, profile, isUnlocked }) {
               animate={{ scale: 1 }}
               transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
             >
-              <svg
-                className="w-6 h-6 text-white"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <PenLine className="w-6 h-6 text-white" />
             </motion.div>
             <div>
-              <p className="text-white font-semibold text-lg">
-                Notes Saved Successfully! ✨
-              </p>
-              <p className="text-white/80 text-sm">
-                Your learning journey is being tracked
-              </p>
+              <p className="text-white font-semibold text-lg">Notes Saved</p>
+              <p className="text-white/80 text-sm">Your progress is being tracked</p>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Confetti Effect */}
-      {showConfetti && (
-        <div className="fixed inset-0 pointer-events-none z-[55]">
-          {[...Array(20)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute"
-              initial={{
-                x: typeof window !== "undefined" ? window.innerWidth / 2 : 0,
-                y: typeof window !== "undefined" ? window.innerHeight / 2 : 0,
-                scale: 0,
-                rotate: 0,
-              }}
-              animate={{
-                x:
-                  typeof window !== "undefined"
-                    ? Math.random() * window.innerWidth
-                    : Math.random() * 1000,
-                y:
-                  typeof window !== "undefined"
-                    ? Math.random() * window.innerHeight
-                    : Math.random() * 800,
-                scale: [0, 1, 0.8, 0],
-                rotate: Math.random() * 360,
-              }}
-              transition={{
-                duration: 1.5,
-                ease: "easeOut",
-              }}
-              style={{
-                width: Math.random() * 10 + 5,
-                height: Math.random() * 10 + 5,
-                background: [
-                  "#1ed760",
-                  "#ffd700",
-                  "#ff6b6b",
-                  "#4ecdc4",
-                  "#ff9ff3",
-                ][Math.floor(Math.random() * 5)],
-                borderRadius: Math.random() > 0.5 ? "50%" : "0%",
-              }}
-            />
-          ))}
-        </div>
-      )}
-
       {/* Modal */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        initial={{ opacity: 0, scale: 0.93, y: 24 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        exit={{ opacity: 0, scale: 0.93, y: 24 }}
+        transition={{ type: "spring", stiffness: 400, damping: 32 }}
         className="fixed inset-4 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-3xl z-50 overflow-hidden rounded-2xl"
         style={{
-          background: "var(--color-black-base)",
-          border: "1px solid var(--color-black-border)",
+          background: "var(--surface)",
+          boxShadow: "var(--shadow-modal)",
           maxHeight: "90vh",
         }}
       >
@@ -179,375 +153,387 @@ export default function WeekDetailModal({ weekNumber, profile, isUnlocked }) {
           className="relative p-6 border-b"
           style={{
             background: isUnlocked
-              ? "linear-gradient(135deg, #145a32, #0a0d12)"
-              : "var(--color-black-surface)",
+              ? "linear-gradient(135deg, #142b1c, var(--surface))"
+              : "var(--elevated)",
             borderColor: "var(--color-black-border)",
           }}
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <h2
-                className="text-3xl font-bold mb-1"
-                style={{
-                  fontFamily: "var(--font-satoshi)",
-                  color: "var(--text-primary)",
-                }}
-              >
-                Week {weekNumber}
-              </h2>
-              {weekContent?.title && (
-                <p style={{ color: "var(--text-secondary)" }}>
-                  {weekContent.title}
-                </p>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3 mb-1">
+                <span
+                  className="text-xs font-bold uppercase tracking-widest"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  Week {weekNumber}
+                </span>
+                <span
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
+                  style={{
+                    background: isUnlocked ? "rgba(30,215,96,0.15)" : "rgba(255,255,255,0.06)",
+                    color: isUnlocked ? "#1ed760" : "var(--text-muted)",
+                    border: isUnlocked ? "1px solid rgba(30,215,96,0.3)" : "1px solid rgba(255,255,255,0.08)",
+                  }}
+                >
+                  {isUnlocked ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+                  {isUnlocked ? "Unlocked" : "Locked"}
+                </span>
+              </div>
+
+              {contentLoading ? (
+                <div
+                  className="h-7 w-48 rounded-lg animate-pulse mt-1"
+                  style={{ background: "var(--color-black-border)" }}
+                />
+              ) : (
+                <h2
+                  className="text-2xl font-bold leading-snug"
+                  style={{ fontFamily: "var(--font-satoshi)", color: "var(--text-primary)" }}
+                >
+                  {weekContent?.title || `Week ${weekNumber}`}
+                </h2>
               )}
             </div>
 
             <button
               onClick={closeWeekModal}
-              className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110"
+              className="w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 shrink-0"
               style={{
                 background: "var(--color-black-border)",
                 color: "var(--text-secondary)",
               }}
+              aria-label="Close week details"
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-          </div>
-
-          {/* Status Badge */}
-          <div className="mt-4">
-            <span
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold"
-              style={{
-                background: isUnlocked
-                  ? "#1ed760"
-                  : "var(--color-black-border)",
-                color: isUnlocked ? "#ffffff" : "var(--text-muted)",
-              }}
-            >
-              {isUnlocked ? (
-                <>
-                  <svg
-                    className="w-4 h-4"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  Unlocked
-                </>
-              ) : (
-                <>
-                  <svg
-                    className="w-4 h-4"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  Locked
-                </>
-              )}
-            </span>
           </div>
         </div>
 
         {/* Content */}
-        <div
-          className="overflow-y-auto"
-          style={{ maxHeight: "calc(90vh - 200px)" }}
-        >
-          <div className="p-6 space-y-6">
-            {!isUnlocked ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-center py-12"
-              >
-                <div className="text-6xl mb-4">🔒</div>
-                <h3
-                  className="text-2xl font-bold mb-2"
-                  style={{ color: "var(--text-primary)" }}
+        <div className="overflow-y-auto" style={{ maxHeight: "calc(90vh - 160px)" }}>
+
+          {/* Loading skeleton (U6) */}
+          {contentLoading ? (
+            <div className="p-6 space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-16 rounded-xl animate-pulse"
+                  style={{ background: "var(--elevated)" }}
+                />
+              ))}
+            </div>
+          ) : isUnlocked ? (
+            /* Unlocked content */
+            <div className="p-6 space-y-6">
+              {/* Lecturer Info (E10) */}
+              {weekContent?.lecturer && (
+                <div
+                  className="flex items-center gap-4 p-4 rounded-2xl"
+                  style={{
+                    background: "var(--elevated)",
+                    border: "1px solid var(--color-black-border)",
+                  }}
                 >
-                  Week {weekNumber} is Locked
-                </h3>
-                <p className="mb-6" style={{ color: "var(--text-secondary)" }}>
-                  Unlock this week to access the content and join the Telegram
-                  group
-                </p>
-              </motion.div>
-            ) : (
-              <>
-                {/* Lecturer Info */}
-                {weekContent?.lecturer && (
-                  <div
-                    className="flex items-center gap-4 p-4 rounded-xl"
-                    style={{
-                      background: "var(--color-black-surface)",
-                      border: "1px solid var(--color-black-border)",
-                    }}
-                  >
-                    <div className="w-12 h-12 rounded-full overflow-hidden">
+                  <div className="w-12 h-12 rounded-full overflow-hidden shrink-0">
+                    {weekContent.lecturer.image_url ? (
                       <img
                         src={weekContent.lecturer.image_url}
                         alt={weekContent.lecturer.name}
                         className="w-full h-full object-cover"
                       />
-                    </div>
-                    <div>
+                    ) : (
                       <div
-                        className="font-semibold"
-                        style={{ color: "var(--text-primary)" }}
+                        className="w-full h-full flex items-center justify-center font-bold"
+                        style={{ background: "linear-gradient(135deg, #1ed760, #16b455)", color: "#062010" }}
                       >
-                        {weekContent.lecturer.name}
+                        {weekContent.lecturer.name?.[0]}
                       </div>
-                      <div
-                        className="text-sm"
-                        style={{ color: "var(--text-secondary)" }}
-                      >
-                        Lead Instructor
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold" style={{ color: "var(--text-primary)" }}>
+                      {weekContent.lecturer.name}
+                    </div>
+                    {weekContent.lecturer.expertise?.length > 0 && (
+                      <div className="text-sm mt-0.5" style={{ color: "var(--text-secondary)" }}>
+                        {weekContent.lecturer.expertise.slice(0, 2).join(" · ")}
                       </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Week Summary */}
-                {weekContent?.summary && (
-                  <div>
-                    <h3
-                      className="text-xl font-bold mb-3 flex items-center gap-2"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      <span>📚</span> Week Summary
-                    </h3>
-                    <div
-                      className="p-4 rounded-xl"
-                      style={{
-                        background: "var(--color-black-surface)",
-                        border: "1px solid var(--color-black-border)",
-                        color: "var(--text-secondary)",
-                        lineHeight: "1.7",
-                      }}
-                    >
-                      {weekContent.summary}
-                    </div>
-                  </div>
-                )}
-
-                {/* Telegram Link */}
-                {weekContent?.telegram_link && (
-                  <div>
-                    <h3
-                      className="text-xl font-bold mb-3 flex items-center gap-2"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      <span>💬</span> Join Week {weekNumber} Group
-                    </h3>
-                    <a
-                      href={weekContent.telegram_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between p-4 rounded-xl transition-all hover:scale-[1.02]"
-                      style={{
-                        background: "linear-gradient(135deg, #0088cc, #006699)",
-                        color: "#ffffff",
-                      }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                          <svg
-                            className="w-6 h-6"
-                            fill="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <div className="font-semibold">Telegram Group</div>
-                          <div className="text-sm opacity-80">
-                            Click to join the discussion
-                          </div>
-                        </div>
-                      </div>
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                    )}
+                    {weekContent.lecturer.bio && (
+                      <p
+                        className="text-sm mt-1 line-clamp-2"
+                        style={{ color: "var(--text-muted)", lineHeight: "1.6" }}
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                        />
-                      </svg>
-                    </a>
-                  </div>
-                )}
-
-                {/* Personal Notes */}
-                <div>
-                  <h3
-                    className="text-xl font-bold mb-3 flex items-center gap-2"
-                    style={{ color: "var(--text-primary)" }}
-                  >
-                    <span>✍️</span> My Learning Notes
-                  </h3>
-                  <motion.div
-                    animate={saveSuccess ? { scale: [1, 1.02, 1] } : {}}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <textarea
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="What did you learn this week? Write your key takeaways here..."
-                      className="w-full h-40 p-4 rounded-xl resize-none focus:outline-none focus:ring-2 transition-all"
-                      style={{
-                        background: "var(--color-black-surface)",
-                        border: saveSuccess
-                          ? "2px solid #1ed760"
-                          : "1px solid var(--color-black-border)",
-                        color: "var(--text-primary)",
-                        fontFamily: "var(--font-satoshi)",
-                        boxShadow: saveSuccess
-                          ? "0 0 20px rgba(30, 215, 96, 0.2)"
-                          : "none",
-                      }}
-                    />
-                  </motion.div>
-                  <div className="flex justify-between items-center mt-3">
-                    <div className="flex items-center gap-3">
-                      <span
-                        className="text-sm"
-                        style={{ color: "var(--text-muted)" }}
-                      >
-                        {notes.length} characters
-                      </span>
-                      <AnimatePresence>
-                        {saveSuccess && (
-                          <motion.span
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 10 }}
-                            className="text-sm font-semibold flex items-center gap-1"
-                            style={{ color: "#1ed760" }}
-                          >
-                            <svg
-                              className="w-4 h-4"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                            Saved
-                          </motion.span>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                    <motion.button
-                      onClick={handleSaveNotes}
-                      disabled={!notes.trim() || isSaving}
-                      whileHover={
-                        notes.trim() && !isSaving ? { scale: 1.05 } : {}
-                      }
-                      whileTap={
-                        notes.trim() && !isSaving ? { scale: 0.95 } : {}
-                      }
-                      className="px-6 py-2 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden"
-                      style={{
-                        background: notes.trim()
-                          ? "linear-gradient(135deg, #1ed760, #16b455)"
-                          : "var(--color-black-border)",
-                        color: notes.trim() ? "#ffffff" : "var(--text-muted)",
-                      }}
-                    >
-                      {isSaving && (
-                        <motion.div
-                          className="absolute inset-0 bg-white/20"
-                          initial={{ x: "-100%" }}
-                          animate={{ x: "100%" }}
-                          transition={{
-                            repeat: Infinity,
-                            duration: 1,
-                            ease: "linear",
-                          }}
-                        />
-                      )}
-                      <span className="relative flex items-center gap-2">
-                        {isSaving ? (
-                          <>
-                            <motion.svg
-                              className="w-4 h-4"
-                              animate={{ rotate: 360 }}
-                              transition={{
-                                repeat: Infinity,
-                                duration: 1,
-                                ease: "linear",
-                              }}
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                              />
-                            </motion.svg>
-                            Saving...
-                          </>
-                        ) : saveSuccess ? (
-                          <>
-                            <svg
-                              className="w-4 h-4"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                            Saved!
-                          </>
-                        ) : (
-                          "Save Notes"
-                        )}
-                      </span>
-                    </motion.button>
+                        {weekContent.lecturer.bio}
+                      </p>
+                    )}
                   </div>
                 </div>
-              </>
-            )}
-          </div>
+              )}
+
+              {/* Week Summary (E8) */}
+              {weekContent?.summary && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <BookOpen className="w-4 h-4" style={{ color: "#1ed760" }} />
+                    <h3 className="text-base font-bold" style={{ color: "var(--text-primary)" }}>
+                      Week Summary
+                    </h3>
+                  </div>
+                  <div
+                    className="p-4 rounded-2xl text-sm"
+                    style={{
+                      background: "var(--elevated)",
+                      border: "1px solid var(--color-black-border)",
+                      color: "var(--text-secondary)",
+                      lineHeight: "1.75",
+                    }}
+                  >
+                    {weekContent.summary}
+                  </div>
+                </div>
+              )}
+
+              {/* Resources */}
+              {weekContent?.resources?.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <ExternalLink className="w-4 h-4" style={{ color: "#3b82f6" }} />
+                    <h3 className="text-base font-bold" style={{ color: "var(--text-primary)" }}>
+                      Resources
+                    </h3>
+                  </div>
+                  <div className="space-y-2">
+                    {weekContent.resources.map((resource, idx) => (
+                      <a
+                        key={idx}
+                        href={resource.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-3 rounded-xl transition-all hover:scale-[1.01]"
+                        style={{
+                          background: "var(--elevated)",
+                          border: "1px solid var(--color-black-border)",
+                          color: "var(--text-primary)",
+                        }}
+                      >
+                        <ExternalLink className="w-4 h-4 shrink-0" style={{ color: "#3b82f6" }} />
+                        <span className="text-sm font-medium flex-1">{resource.title || resource.url}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Telegram Link */}
+              {weekContent?.telegram_link && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <MessageCircle className="w-4 h-4" style={{ color: "#0088cc" }} />
+                    <h3 className="text-base font-bold" style={{ color: "var(--text-primary)" }}>
+                      Join Week {weekNumber} Group
+                    </h3>
+                  </div>
+                  <a
+                    href={weekContent.telegram_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between p-4 rounded-2xl transition-all hover:scale-[1.01] hover:brightness-110"
+                    style={{
+                      background: "linear-gradient(135deg, #0088cc, #006699)",
+                      color: "#ffffff",
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <div className="font-semibold">Telegram Group</div>
+                        <div className="text-sm opacity-80">Join the live discussion</div>
+                      </div>
+                    </div>
+                    <ExternalLink className="w-5 h-5 opacity-80" />
+                  </a>
+                </div>
+              )}
+
+              {/* Personal Notes */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <PenLine className="w-4 h-4" style={{ color: "#f59e0b" }} />
+                  <h3 className="text-base font-bold" style={{ color: "var(--text-primary)" }}>
+                    My Learning Notes
+                  </h3>
+                </div>
+                <motion.div
+                  animate={saveSuccess ? { scale: [1, 1.01, 1] } : {}}
+                  transition={{ duration: 0.3 }}
+                >
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="What did you learn this week? Key takeaways, ideas, questions..."
+                    className="w-full h-36 p-4 rounded-xl resize-none focus:outline-none transition-all text-sm"
+                    style={{
+                      background: "var(--elevated)",
+                      border: saveSuccess
+                        ? "1.5px solid #1ed760"
+                        : "1px solid var(--color-black-border)",
+                      color: "var(--text-primary)",
+                      lineHeight: "1.7",
+                      boxShadow: saveSuccess ? "0 0 16px rgba(30, 215, 96, 0.12)" : "none",
+                    }}
+                  />
+                </motion.div>
+                <div className="flex justify-between items-center mt-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+                      {notes.length} characters
+                    </span>
+                    <AnimatePresence>
+                      {saveSuccess && (
+                        <motion.span
+                          initial={{ opacity: 0, x: -8 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 8 }}
+                          className="text-xs font-semibold"
+                          style={{ color: "#1ed760" }}
+                        >
+                          Saved
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                  <motion.button
+                    onClick={handleSaveNotes}
+                    disabled={!notes.trim() || isSaving}
+                    whileHover={notes.trim() && !isSaving ? { scale: 1.04 } : {}}
+                    whileTap={notes.trim() && !isSaving ? { scale: 0.96 } : {}}
+                    className="px-5 py-2 rounded-lg font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      background: notes.trim()
+                        ? "linear-gradient(135deg, #1ed760, #16b455)"
+                        : "var(--color-black-border)",
+                      color: notes.trim() ? "#062010" : "var(--text-muted)",
+                    }}
+                  >
+                    {isSaving ? "Saving..." : saveSuccess ? "Saved!" : "Save Notes"}
+                  </motion.button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Locked state — show teaser + CTA (U1 + E3) */
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-6 space-y-6"
+            >
+              {/* Lock visual */}
+              <div className="text-center py-4">
+                <motion.div
+                  initial={{ scale: 0.8 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+                  style={{
+                    background: "var(--elevated)",
+                    border: "1px solid var(--color-black-border)",
+                  }}
+                >
+                  <Lock className="w-7 h-7" style={{ color: "var(--text-muted)" }} />
+                </motion.div>
+                <p className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>
+                  This week is locked
+                </p>
+              </div>
+
+              {/* Week teaser card */}
+              <div
+                className="rounded-2xl p-5 space-y-4"
+                style={{
+                  background: "var(--elevated)",
+                  border: "1px solid var(--color-black-border)",
+                }}
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <BookOpen className="w-4 h-4" style={{ color: "#1ed760" }} />
+                  <span className="text-sm font-semibold" style={{ color: "var(--text-secondary)" }}>
+                    What you'll learn
+                  </span>
+                </div>
+
+                {weekContent?.summary ? (
+                  <p
+                    className="text-sm leading-relaxed"
+                    style={{ color: "var(--text-secondary)", lineHeight: "1.7" }}
+                  >
+                    {weekContent.summary.slice(0, 180)}
+                    {weekContent.summary.length > 180 && (
+                      <span style={{ color: "var(--text-muted)" }}>… unlock to read more</span>
+                    )}
+                  </p>
+                ) : (
+                  <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+                    Unlock this week to access the full curriculum content and join the Telegram discussion group.
+                  </p>
+                )}
+
+                {weekContent?.lecturer && (
+                  <div
+                    className="flex items-center gap-3 pt-3"
+                    style={{ borderTop: "1px solid var(--color-black-border)" }}
+                  >
+                    <div className="w-8 h-8 rounded-full overflow-hidden shrink-0">
+                      {weekContent.lecturer.image_url ? (
+                        <img
+                          src={weekContent.lecturer.image_url}
+                          alt={weekContent.lecturer.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div
+                          className="w-full h-full flex items-center justify-center text-xs font-bold"
+                          style={{ background: "linear-gradient(135deg, #1ed760, #16b455)", color: "#062010" }}
+                        >
+                          {weekContent.lecturer.name?.[0]}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                        {weekContent.lecturer.name}
+                      </p>
+                      <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                        {weekContent.lecturer.expertise?.[0] || "Instructor"}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Unlock CTA */}
+              <button
+                onClick={handleScrollToPayment}
+                className="w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all hover:brightness-110 active:scale-[0.98]"
+                style={{
+                  background: "linear-gradient(135deg, #1ed760, #16b455)",
+                  color: "#062010",
+                  boxShadow: "0 4px 20px rgba(30, 215, 96, 0.3)",
+                }}
+              >
+                <Unlock className="w-5 h-5" />
+                Unlock Week {weekNumber}
+                <ChevronRight className="w-4 h-4 ml-auto" />
+              </button>
+            </motion.div>
+          )}
         </div>
       </motion.div>
     </>

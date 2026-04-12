@@ -78,12 +78,7 @@ export default function AdminLoginPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="p-8 rounded-2xl"
-          style={{
-            background: "var(--color-black-surface)",
-            border: "1px solid var(--color-black-border)",
-            boxShadow: "var(--shadow-xl)",
-          }}
+          className="card p-8"
         >
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email Field */}
@@ -109,19 +104,10 @@ export default function AdminLoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   placeholder="admin@leadprogram.com"
-                  className="w-full pl-12 pr-4 py-3.5 rounded-xl outline-none transition-all"
+                  className="w-full pl-12 pr-4 py-3.5 rounded-xl outline-none border border-(--color-black-border) focus:border-(--color-green-primary) focus:ring-2 focus:ring-green-primary/20 transition-all"
                   style={{
                     background: "var(--color-black-elevated)",
-                    border: "1px solid var(--color-black-border)",
                     color: "var(--text-primary)",
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.border =
-                      "1px solid var(--color-green-primary)";
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.border =
-                      "1px solid var(--color-black-border)";
                   }}
                 />
               </div>
@@ -150,19 +136,10 @@ export default function AdminLoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   placeholder="Enter your password"
-                  className="w-full pl-12 pr-12 py-3.5 rounded-xl outline-none transition-all"
+                  className="w-full pl-12 pr-12 py-3.5 rounded-xl outline-none border border-(--color-black-border) focus:border-(--color-green-primary) focus:ring-2 focus:ring-green-primary/20 transition-all"
                   style={{
                     background: "var(--color-black-elevated)",
-                    border: "1px solid var(--color-black-border)",
                     color: "var(--text-primary)",
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.border =
-                      "1px solid var(--color-green-primary)";
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.border =
-                      "1px solid var(--color-black-border)";
                   }}
                 />
                 <button
@@ -244,8 +221,7 @@ export default function AdminLoginPage() {
 
           {/* Security Notice */}
           <div
-            className="mt-6 pt-6 border-t"
-            style={{ borderColor: "var(--color-black-border)" }}
+            className="mt-6 pt-6 border-t border-(--color-black-border)"
           >
             <p
               className="text-xs text-center"

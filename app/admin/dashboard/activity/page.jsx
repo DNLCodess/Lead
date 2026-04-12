@@ -229,11 +229,7 @@ export default function ActivityLogsPage() {
 
       {/* Activity Timeline */}
       <div
-        className="rounded-2xl overflow-hidden"
-        style={{
-          background: "var(--color-black-surface)",
-          border: "1px solid var(--color-black-border)",
-        }}
+        className="card rounded-xl overflow-hidden"
       >
         <div className="p-6 space-y-4">
           {filteredLogs?.map((log, index) => {
@@ -245,15 +241,11 @@ export default function ActivityLogsPage() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="flex items-start gap-4 p-4 rounded-xl"
-                style={{
-                  background: "var(--color-black-elevated)",
-                  border: "1px solid var(--color-black-border)",
-                }}
+                className="card p-4 rounded-xl flex items-start gap-4"
               >
                 {/* Icon */}
                 <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                  className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
                   style={{ background: actionStyle.bg }}
                 >
                   <div style={{ color: actionStyle.color }}>
@@ -279,7 +271,7 @@ export default function ActivityLogsPage() {
                         {log.resource_type && ` - ${log.resource_type}`}
                       </p>
                     </div>
-                    <div className="text-right flex-shrink-0">
+                    <div className="text-right shrink-0">
                       <p
                         className="text-sm font-semibold"
                         style={{ color: "var(--text-primary)" }}

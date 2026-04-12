@@ -16,31 +16,27 @@ export async function GET(request) {
       );
     }
 
-    console.log("Verifying week payment:", transactionId);
-
     // Get authenticated user
     const supabase = await createClient();
     const {
-      data: { session },
+      data: { user: authUser },
       error: authError,
-    } = await supabase.auth.getSession();
+    } = await supabase.auth.getUser();
 
-    if (authError || !session?.user) {
+    if (authError || !authUser) {
       return NextResponse.json(
         { error: "Unauthorized - Please log in" },
         { status: 401 }
       );
     }
 
-    const userId = session.user.id;
+    const userId = authUser.id;
 
-    const { data: user } = await supabase
+    const { data: user } = await supabaseAdmin
       .from("students")
       .select("*")
       .eq("user_id", userId)
       .single();
-
-    console.log("Current user:", user);
 
     // Step 1: Verify with Flutterwave
     const flwResponse = await fetch(
@@ -57,7 +53,6 @@ export async function GET(request) {
     }
 
     const flwData = await flwResponse.json();
-    console.log("Flutterwave response:", flwData);
 
     if (flwData.status !== "success") {
       throw new Error("Transaction verification failed");
@@ -88,11 +83,11 @@ export async function GET(request) {
       console.log("Payment already processed, returning existing weeks");
 
       // Update payment status if needed
-      if (payment.status !== "completed") {
+      if (payment.status !== "successful") {
         await supabaseAdmin
           .from("payments")
           .update({
-            status: "completed",
+            status: "successful",
             verified_at: new Date().toISOString(),
           })
           .eq("id", payment.id);
@@ -160,10 +155,6 @@ export async function GET(request) {
       throw new Error("Failed to update payment status");
     }
 
-    console.log("Week payment verified successfully:", {
-      paymentId: payment.id,
-      unlockedWeeks: weeksToUnlock,
-    });
 
     return NextResponse.json({
       success: true,

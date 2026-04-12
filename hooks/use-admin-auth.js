@@ -14,10 +14,10 @@ export function useAdminAuth() {
     queryKey: ["admin-auth"],
     queryFn: async () => {
       const {
-        data: { session },
-      } = await supabase.auth.getSession();
+        data: { user },
+      } = await supabase.auth.getUser();
 
-      if (!session?.user) {
+      if (!user) {
         throw new Error("Not authenticated");
       }
 
@@ -25,7 +25,7 @@ export function useAdminAuth() {
       const { data: lecturer, error } = await supabase
         .from("lecturers")
         .select("*")
-        .eq("user_id", session.user.id)
+        .eq("user_id", user.id)
         .single();
 
       if (error || !lecturer) {

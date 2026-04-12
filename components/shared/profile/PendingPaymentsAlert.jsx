@@ -2,24 +2,34 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle, RefreshCw, CheckCircle2, XCircle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
+const MAX_POLL_COUNT = 10; // stop after 5 minutes (10 × 30s)
+
 export default function PendingPaymentsAlert({ userId }) {
   const [retryingPayments, setRetryingPayments] = useState(new Set());
+  const pollCountRef = useRef(0);
   const queryClient = useQueryClient();
 
-  // Fetch pending payments
+  // Fetch pending payments — stops polling after MAX_POLL_COUNT attempts
   const { data: pendingPayments, isLoading } = useQuery({
     queryKey: ["pending-payments", userId],
     queryFn: async () => {
       const response = await fetch("/api/payment/check-pending");
       if (!response.ok) throw new Error("Failed to check pending payments");
-      return response.json();
+      const data = await response.json();
+      pollCountRef.current += 1;
+      return data;
     },
-    refetchInterval: 30000, // Check every 30 seconds
+    refetchInterval: (data) => {
+      // Stop polling if cap reached or no pending payments remain
+      if (pollCountRef.current >= MAX_POLL_COUNT) return false;
+      if (data && data?.data?.length === 0) return false;
+      return 30000;
+    },
   });
 
   // Retry verification mutation

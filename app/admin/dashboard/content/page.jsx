@@ -192,11 +192,7 @@ export default function ContentManagementPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-12 rounded-2xl text-center"
-          style={{
-            background: "var(--color-black-surface)",
-            border: "1px solid var(--color-black-border)",
-          }}
+          className="card p-12 rounded-xl text-center"
         >
           <BookOpen
             className="w-16 h-16 mx-auto mb-4"
@@ -314,11 +310,7 @@ function WeekContentDetail({ weekData, isEditing, setIsEditing, onUpdate }) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl overflow-hidden"
-      style={{
-        background: "var(--color-black-surface)",
-        border: "1px solid var(--color-black-border)",
-      }}
+      className="card rounded-xl overflow-hidden"
     >
       {/* Header */}
       <div
@@ -476,8 +468,7 @@ function WeekContentDetail({ weekData, isEditing, setIsEditing, onUpdate }) {
             />
           ) : (
             <div
-              className="p-4 rounded-xl"
-              style={{ background: "var(--color-black-elevated)" }}
+              className="card-elevated p-4 rounded-xl"
             >
               <p
                 style={{
@@ -612,11 +603,7 @@ function WeekContentDetail({ weekData, isEditing, setIsEditing, onUpdate }) {
               {formData.resources.map((resource, index) => (
                 <div
                   key={index}
-                  className="p-4 rounded-xl space-y-2"
-                  style={{
-                    background: "var(--color-black-elevated)",
-                    border: "1px solid var(--color-black-border)",
-                  }}
+                  className="card p-4 rounded-xl space-y-2"
                 >
                   <div className="flex items-center gap-2">
                     <input
@@ -691,19 +678,7 @@ function WeekContentDetail({ weekData, isEditing, setIsEditing, onUpdate }) {
                   href={resource.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-3 rounded-xl transition-all"
-                  style={{
-                    background: "var(--color-black-elevated)",
-                    border: "1px solid var(--color-black-border)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor =
-                      "var(--color-green-primary)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor =
-                      "var(--color-black-border)";
-                  }}
+                  className="card-interactive flex items-center gap-3 p-3 rounded-xl transition-all"
                 >
                   <div
                     className="w-10 h-10 rounded-lg flex items-center justify-center"
@@ -865,19 +840,11 @@ function AddWeekModal({ isOpen, onClose, weekNumber, onSuccess }) {
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl"
-          style={{
-            background: "var(--color-black-surface)",
-            border: "1px solid var(--color-black-border)",
-          }}
+          className="card w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl"
         >
           {/* Header */}
           <div
-            className="sticky top-0 px-6 py-4 border-b backdrop-blur-lg"
-            style={{
-              background: "var(--color-black-surface)",
-              borderColor: "var(--color-black-border)",
-            }}
+            className="sticky top-0 px-6 py-4 border-b border-(--color-black-border) backdrop-blur-lg bg-(--color-black-surface)"
           >
             <div className="flex items-center justify-between">
               <h2

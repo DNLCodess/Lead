@@ -44,6 +44,14 @@ export function useWeekNotes(userId, weekNumber) {
   });
 }
 
+export function useAllWeekTitles() {
+  return useQuery({
+    queryKey: ["all-week-titles"],
+    queryFn: () => ProfileService.getAllWeekTitles(),
+    staleTime: 30 * 60 * 1000, // titles rarely change
+  });
+}
+
 export function useSaveWeekNotes() {
   const queryClient = useQueryClient();
 

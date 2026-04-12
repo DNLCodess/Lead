@@ -9,7 +9,7 @@ const supabase = createClient(
 export async function GET() {
   try {
     const { error } = await supabase
-      .from("profiles")
+      .from("students")
       .select("id")
       .limit(1)
       .maybeSingle();

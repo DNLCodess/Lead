@@ -132,11 +132,7 @@ export default function LecturersPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            className="rounded-2xl overflow-hidden"
-            style={{
-              background: "var(--color-black-surface)",
-              border: "1px solid var(--color-black-border)",
-            }}
+            className="card rounded-xl overflow-hidden"
           >
             {/* Header with Image */}
             <div
@@ -257,8 +253,7 @@ export default function LecturersPage() {
 
               {/* Weeks Teaching */}
               <div
-                className="p-3 rounded-xl mb-4"
-                style={{ background: "var(--color-black-elevated)" }}
+                className="card-elevated p-3 rounded-xl mb-4"
               >
                 <p
                   className="text-xs mb-1"
@@ -410,6 +405,50 @@ function LecturerFormModal({ isOpen, lecturer, onClose, onSuccess }) {
     is_active: lecturer?.is_active ?? true,
   });
 
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState(lecturer?.image_url || null);
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type and size (max 5MB)
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image must be under 5MB.");
+      return;
+    }
+
+    setImageUploading(true);
+    try {
+      // Use a unique filename to avoid collisions
+      const ext = file.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("lecturers")
+        .upload(fileName, file, { upsert: false });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from("lecturers")
+        .getPublicUrl(fileName);
+
+      const { publicUrl } = urlData;
+      setFormData((prev) => ({ ...prev, image_url: publicUrl }));
+      setImagePreview(publicUrl);
+    } catch (err) {
+      console.error("Image upload failed:", err);
+      alert("Image upload failed. Please try again.");
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
   // Create/Update mutation
   const saveMutation = useMutation({
     mutationFn: async (data) => {
@@ -458,19 +497,11 @@ function LecturerFormModal({ isOpen, lecturer, onClose, onSuccess }) {
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl"
-          style={{
-            background: "var(--color-black-surface)",
-            border: "1px solid var(--color-black-border)",
-          }}
+          className="card w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl"
         >
           {/* Header */}
           <div
-            className="sticky top-0 px-6 py-4 border-b backdrop-blur-lg"
-            style={{
-              background: "var(--color-black-surface)",
-              borderColor: "var(--color-black-border)",
-            }}
+            className="sticky top-0 px-6 py-4 border-b border-(--color-black-border) backdrop-blur-lg bg-(--color-black-surface)"
           >
             <div className="flex items-center justify-between">
               <h2
@@ -593,22 +624,53 @@ function LecturerFormModal({ isOpen, lecturer, onClose, onSuccess }) {
                   className="block text-sm font-semibold mb-2"
                   style={{ color: "var(--text-primary)" }}
                 >
-                  Profile Image URL
+                  Profile Image
                 </label>
-                <input
-                  type="url"
-                  value={formData.image_url}
-                  onChange={(e) =>
-                    setFormData({ ...formData, image_url: e.target.value })
-                  }
-                  className="w-full px-4 py-3 rounded-xl outline-none"
-                  style={{
-                    background: "var(--color-black-elevated)",
-                    border: "1px solid var(--color-black-border)",
-                    color: "var(--text-primary)",
-                  }}
-                  placeholder="https://example.com/image.jpg"
-                />
+                <div className="flex items-center gap-4">
+                  {/* Preview */}
+                  <div
+                    className="w-16 h-16 rounded-full shrink-0 overflow-hidden flex items-center justify-center text-lg font-bold"
+                    style={{
+                      background: imagePreview ? "transparent" : "var(--color-black-elevated)",
+                      border: "1px solid var(--color-black-border)",
+                      color: "var(--text-muted)",
+                    }}
+                  >
+                    {imagePreview ? (
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      formData.name?.[0]?.toUpperCase() || "?"
+                    )}
+                  </div>
+                  {/* Upload button */}
+                  <label
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl cursor-pointer transition-colors"
+                    style={{
+                      background: "var(--color-black-elevated)",
+                      border: "1px dashed var(--color-black-border)",
+                      color: imageUploading ? "var(--text-muted)" : "var(--text-secondary)",
+                    }}
+                  >
+                    {imageUploading ? (
+                      <span className="text-sm">Uploading...</span>
+                    ) : (
+                      <span className="text-sm">
+                        {imagePreview ? "Change photo" : "Upload photo"} — JPG, PNG, WEBP · max 5MB
+                      </span>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={imageUploading}
+                      onChange={handleImageUpload}
+                    />
+                  </label>
+                </div>
               </div>
 
               <div>
@@ -666,8 +728,7 @@ function LecturerFormModal({ isOpen, lecturer, onClose, onSuccess }) {
 
             {/* Permissions */}
             <div
-              className="p-4 rounded-xl space-y-3"
-              style={{ background: "var(--color-black-elevated)" }}
+              className="card-elevated p-4 rounded-xl space-y-3"
             >
               <h3
                 className="font-semibold mb-2"

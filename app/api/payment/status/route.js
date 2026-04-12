@@ -44,7 +44,7 @@ export async function GET(request) {
       success: true,
       data: {
         status: payment.status,
-        transaction_id: payment.flw_transaction_id,
+        transaction_id: payment.transaction_id,
         tx_ref: payment.tx_ref,
         amount: payment.amount,
         currency: payment.currency,

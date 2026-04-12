@@ -109,9 +109,34 @@ export async function GET(request) {
       );
     }
 
-    // Step 2: Update payment record in database (server-side with service role)
-    console.log("Updating payment record for tx_ref:", transactionData.tx_ref);
+    // Step 2: Fetch stored payment record and validate amount/currency
+    const { data: storedPayment, error: fetchError } = await supabaseAdmin
+      .from("payments")
+      .select("id, amount, currency, status")
+      .eq("tx_ref", transactionData.tx_ref)
+      .single();
 
+    if (fetchError || !storedPayment) {
+      return NextResponse.json(
+        { error: "Payment record not found" },
+        { status: 404 }
+      );
+    }
+
+    if (
+      parseFloat(transactionData.amount) !== parseFloat(storedPayment.amount) ||
+      transactionData.currency !== storedPayment.currency
+    ) {
+      return NextResponse.json(
+        {
+          error: "Payment amount or currency mismatch",
+          message: "Transaction does not match the expected payment",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Step 3: Update payment record in database (server-side with service role)
     const { data: updatedPayment, error: updateError } = await supabaseAdmin
       .from("payments")
       .update({

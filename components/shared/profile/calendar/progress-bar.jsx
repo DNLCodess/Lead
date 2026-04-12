@@ -15,12 +15,7 @@ export default function ProgressBar({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="p-6 rounded-xl"
-      style={{
-        background: "var(--color-black-surface)",
-        border: "1px solid var(--color-black-border)",
-        borderRadius: "1.2rem",
-      }}
+      className="card p-6"
     >
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
@@ -58,11 +53,11 @@ export default function ProgressBar({
         </div>
       </div>
 
-      {/* Progress Bar */}
+      {/* Progress Bar + Tick Marks */}
       <div className="relative">
         <div
-          className="h-6 rounded-full overflow-hidden"
-          style={{ background: "var(--color-black-border)" }}
+          className="h-4 rounded-full overflow-hidden"
+          style={{ background: "var(--elevated)" }}
         >
           <motion.div
             initial={{ width: 0 }}
@@ -97,21 +92,49 @@ export default function ProgressBar({
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ delay: 1, type: "spring" }}
-          className="absolute top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center"
+          className="absolute w-6 h-6 rounded-full flex items-center justify-center"
           style={{
             left: `${(currentWeek / totalWeeks) * 100}%`,
+            top: "50%",
+            transform: "translate(-50%, -50%)",
             background: "#ffffff",
             border: "3px solid #1ed760",
-            transform: "translate(-50%, -50%)",
+            boxShadow: "0 0 12px rgba(30, 215, 96, 0.5)",
           }}
         >
-          <span className="text-xs">📍</span>
+          <div
+            className="w-2 h-2 rounded-full"
+            style={{ background: "#1ed760" }}
+          />
         </motion.div>
+
+        {/* Tick marks at phase boundaries */}
+        {[0, 25, 50, 75, 100].map((pct) => (
+          <div
+            key={pct}
+            className="absolute"
+            style={{
+              left: `${pct}%`,
+              top: "100%",
+              transform: "translateX(-50%)",
+            }}
+          >
+            <div
+              className="w-px h-2 mx-auto"
+              style={{
+                background:
+                  progress >= pct
+                    ? "rgba(30, 215, 96, 0.5)"
+                    : "var(--color-black-border)",
+              }}
+            />
+          </div>
+        ))}
       </div>
 
       {/* Milestones */}
       <div
-        className="flex justify-between mt-4 text-xs"
+        className="flex justify-between mt-3 text-xs"
         style={{ color: "var(--text-muted)" }}
       >
         <span>Start</span>

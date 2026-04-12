@@ -64,13 +64,14 @@ export default function DeleteAccountModal({ isOpen, onClose, profile }) {
 
           {/* Modal */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            initial={{ opacity: 0, scale: 0.93, y: 24 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            exit={{ opacity: 0, scale: 0.93, y: 24 }}
+            transition={{ type: "spring", stiffness: 400, damping: 32 }}
             className="fixed inset-4 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-md z-50 rounded-2xl p-6"
             style={{
-              background: "var(--color-black-base)",
-              border: "1px solid #ef4444",
+              background: "var(--surface)",
+              boxShadow: "var(--shadow-modal), 0 0 0 1px rgba(239,68,68,0.3)",
             }}
           >
             {/* Icon */}
@@ -108,13 +109,7 @@ export default function DeleteAccountModal({ isOpen, onClose, profile }) {
             </p>
 
             {/* Warning List */}
-            <div
-              className="p-4 rounded-xl mb-6"
-              style={{
-                background: "var(--color-black-surface)",
-                border: "1px solid var(--color-black-border)",
-              }}
-            >
+            <div className="card-elevated p-4 rounded-xl mb-6">
               <p className="font-semibold mb-2" style={{ color: "#ef4444" }}>
                 You will lose:
               </p>
@@ -142,10 +137,9 @@ export default function DeleteAccountModal({ isOpen, onClose, profile }) {
                 value={confirmText}
                 onChange={(e) => setConfirmText(e.target.value.toUpperCase())}
                 placeholder="DELETE"
-                className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/30 border border-(--color-black-border) focus:border-red-500 transition-colors"
                 style={{
-                  background: "var(--color-black-surface)",
-                  border: "1px solid var(--color-black-border)",
+                  background: "var(--elevated)",
                   color: "var(--text-primary)",
                 }}
               />

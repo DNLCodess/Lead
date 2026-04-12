@@ -50,9 +50,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-[#0a0d12]">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-(--color-black-base)">
       {/* Background gradient */}
-      <div className="fixed inset-0 bg-gradient-to-br from-[#1ed760]/5 via-transparent to-[#145a32]/5 pointer-events-none" />
+      <div className="fixed inset-0 bg-linear-to-br from-green-primary/5 via-transparent to-green-primary/3 pointer-events-none" />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -76,7 +76,7 @@ export default function LoginPage() {
               />
             </motion.div>
           </Link>
-          <p className="text-gray-400 mt-2">
+          <p className="mt-2 text-(--text-secondary)">
             Welcome back! Sign in to continue
           </p>
         </div>
@@ -86,14 +86,14 @@ export default function LoginPage() {
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6 p-4 bg-[#1ed760]/10 border border-[#1ed760]/30 rounded-lg flex items-start gap-3"
+            className="mb-6 p-4 bg-green-primary/10 border border-green-primary/30 rounded-xl flex items-start gap-3"
           >
-            <CheckCircle className="w-5 h-5 text-[#1ed760] flex-shrink-0 mt-0.5" />
+            <CheckCircle className="w-5 h-5 text-green-primary shrink-0 mt-0.5" />
             <div>
-              <p className="text-[#1ed760] font-medium">
+              <p className="text-green-primary font-medium">
                 Password reset successful!
               </p>
-              <p className="text-gray-400 text-sm mt-1">
+              <p className="text-(--text-secondary) text-sm mt-1">
                 You can now sign in with your new password.
               </p>
             </div>
@@ -102,7 +102,7 @@ export default function LoginPage() {
 
         {/* Card */}
         <motion.div
-          className="bg-[#11151c] border border-gray-800 rounded-2xl p-8 shadow-2xl"
+          className="card p-8"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3, delay: 0.1 }}
@@ -112,12 +112,12 @@ export default function LoginPage() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-300 mb-2"
+                className="block text-sm font-medium text-(--text-primary) mb-2"
               >
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-(--text-muted)" />
                 <input
                   type="email"
                   id="email"
@@ -125,7 +125,7 @@ export default function LoginPage() {
                   value={formData.email}
                   onChange={handleChange}
                   required
-                  className="w-full pl-12 pr-4 py-3 bg-[#161b24] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#1ed760] focus:border-transparent transition-all"
+                  className="w-full pl-12 pr-4 py-3 rounded-xl outline-none border border-(--color-black-border) bg-(--color-black-elevated) text-(--text-primary) placeholder:text-(--text-muted) focus:border-green-primary focus:ring-2 focus:ring-green-primary/20 transition-all"
                   placeholder="you@example.com"
                 />
               </div>
@@ -135,12 +135,12 @@ export default function LoginPage() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-300 mb-2"
+                className="block text-sm font-medium text-(--text-primary) mb-2"
               >
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-(--text-muted)" />
                 <input
                   type={showPassword ? "text" : "password"}
                   id="password"
@@ -148,13 +148,13 @@ export default function LoginPage() {
                   value={formData.password}
                   onChange={handleChange}
                   required
-                  className="w-full pl-12 pr-12 py-3 bg-[#161b24] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-primary focus:border-transparent transition-all"
+                  className="w-full pl-12 pr-12 py-3 rounded-xl outline-none border border-(--color-black-border) bg-(--color-black-elevated) text-(--text-primary) placeholder:text-(--text-muted) focus:border-green-primary focus:ring-2 focus:ring-green-primary/20 transition-all"
                   placeholder="Enter your password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-(--text-muted) hover:text-(--text-primary) transition-colors"
                 >
                   {showPassword ? (
                     <EyeOff className="w-5 h-5" />
@@ -172,16 +172,16 @@ export default function LoginPage() {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 bg-[#161b24] border border-gray-700 rounded text-[#1ed760] focus:ring-2 focus:ring-[#1ed760] focus:ring-offset-0 cursor-pointer"
+                  className="w-4 h-4 bg-(--color-black-elevated) border border-(--color-black-border) rounded text-green-primary focus:ring-2 focus:ring-green-primary/20 focus:ring-offset-0 cursor-pointer"
                 />
-                <span className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors">
+                <span className="text-sm text-(--text-secondary) group-hover:text-(--text-primary) transition-colors">
                   Remember me
                 </span>
               </label>
 
               <Link
                 href="/auth/forgot-password"
-                className="text-sm text-[#1ed760] hover:text-[#16b455] transition-colors"
+                className="text-sm text-green-primary hover:text-green-hover transition-colors"
               >
                 Forgot password?
               </Link>
@@ -206,7 +206,7 @@ export default function LoginPage() {
               disabled={signInMutation.isPending}
               whileHover={{ scale: signInMutation.isPending ? 1 : 1.02 }}
               whileTap={{ scale: signInMutation.isPending ? 1 : 0.98 }}
-              className="w-full py-3 bg-[#1ed760] text-black font-semibold rounded-lg hover:bg-[#16b455] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-3 bg-green-primary text-black font-semibold rounded-xl hover:bg-green-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {signInMutation.isPending ? (
                 <>
@@ -222,10 +222,10 @@ export default function LoginPage() {
           {/* Divider */}
           <div className="relative my-8">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-800"></div>
+              <div className="w-full border-t border-(--color-black-border)"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-black-surface text-gray-500">
+              <span className="px-4 bg-(--color-black-surface) text-(--text-muted)">
                 Don&lsquo;t have an account?
               </span>
             </div>
@@ -237,7 +237,7 @@ export default function LoginPage() {
               type="button"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="w-full py-3 bg-transparent border border-gray-700 text-gray-300 font-semibold rounded-lg hover:bg-[#161b24] hover:border-gray-600 transition-all"
+              className="w-full py-3 bg-transparent border border-(--color-black-border) text-(--text-secondary) font-semibold rounded-xl hover:bg-(--color-black-elevated) hover:text-(--text-primary) transition-all"
             >
               Create New Account
             </motion.button>
@@ -245,18 +245,18 @@ export default function LoginPage() {
         </motion.div>
 
         {/* Footer */}
-        <p className="text-center text-gray-500 text-sm mt-8">
+        <p className="text-center text-(--text-muted) text-sm mt-8">
           By signing in, you agree to our{" "}
           <Link
             href="/terms"
-            className="text-[#1ed760] hover:text-[#16b455] transition-colors"
+            className="text-green-primary hover:text-green-hover transition-colors"
           >
             Terms of Service
           </Link>{" "}
           and{" "}
           <Link
             href="/privacy"
-            className="text-[#1ed760] hover:text-[#16b455] transition-colors"
+            className="text-green-primary hover:text-green-hover transition-colors"
           >
             Privacy Policy
           </Link>

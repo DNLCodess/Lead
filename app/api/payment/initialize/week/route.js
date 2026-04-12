@@ -17,20 +17,12 @@ export async function POST(request) {
     // ✅ Create Supabase SSR client
     const supabase = await createClient();
 
-    // ✅ Get the session (more reliable than getUser for API routes)
     const {
-      data: { session },
+      data: { user },
       error: sessionError,
-    } = await supabase.auth.getSession();
+    } = await supabase.auth.getUser();
 
-    console.log("Session check:", {
-      hasSession: !!session,
-      sessionError,
-      userId: session?.user?.id,
-    });
-
-    if (sessionError || !session?.user) {
-      console.error("Auth error:", sessionError);
+    if (sessionError || !user) {
       return NextResponse.json(
         {
           error: "Unauthorized - Please log in again",
@@ -40,7 +32,7 @@ export async function POST(request) {
       );
     }
 
-    const user = session.user;
+    // user is already set from getUser() above
 
     const { paymentPlan, startWeek } = await request.json();
 
@@ -58,12 +50,6 @@ export async function POST(request) {
       .eq("user_id", user.id)
       .single();
 
-    console.log("Student lookup:", {
-      userId: user.id,
-      found: !!student,
-      error: studentError,
-    });
-
     if (studentError || !student) {
       return NextResponse.json(
         {
@@ -77,8 +63,6 @@ export async function POST(request) {
     // Get pricing based on account type
     const accountType = student.account_type || "nigerian";
     const pricing = ProfileService.getPricing(accountType, paymentPlan);
-
-    console.log("Pricing calculated:", pricing);
 
     // Calculate which weeks to unlock
     const { data: unlockedWeeks } = await supabaseAdmin
@@ -107,7 +91,6 @@ export async function POST(request) {
       );
     }
 
-    console.log("Weeks to unlock:", weeksToUnlock);
 
     // Generate unique transaction reference
     const txRef = generateTxRef();
@@ -140,18 +123,18 @@ export async function POST(request) {
       .single();
 
     if (dbError) {
-      console.error("Database error:", dbError);
       throw new Error("Failed to create payment record: " + dbError.message);
     }
-
-    console.log("Payment record created:", paymentRecord.id);
 
     // Prepare Flutterwave payment payload
     const paymentPayload = {
       tx_ref: txRef,
       amount: pricing.amount,
       currency: pricing.currency,
-      payment_options: "card,banktransfer,ussd,account,mobilemoneyghana,mpesa",
+      // NGN: card + local transfer methods; USD: card only (USSD/mobile-money unavailable)
+      payment_options: pricing.currency === "NGN"
+        ? "card,banktransfer,ussd,account"
+        : "card",
       redirect_url: `${
         process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
       }/profile/verify-week-payment`,
@@ -175,7 +158,6 @@ export async function POST(request) {
         student_id: student.id,
       },
     };
-    console.log("Payment payload prepared:", paymentPayload);
 
     return NextResponse.json({
       success: true,
