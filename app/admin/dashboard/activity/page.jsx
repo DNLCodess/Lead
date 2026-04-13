@@ -2,30 +2,30 @@
 
 "use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import {
   Activity,
-  Filter,
   Download,
   Search,
-  Calendar,
   User,
-  FileText,
   AlertCircle,
+  Plus,
+  Edit,
+  Trash2,
 } from "lucide-react";
 
 export default function ActivityLogsPage() {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterAction, setFilterAction] = useState("all");
   const [dateRange, setDateRange] = useState("all");
 
   // Fetch activity logs
-  const { data: logs, isLoading } = useQuery({
+  const { data: logs, isLoading, isError, refetch } = useQuery({
     queryKey: ["admin-activity-logs", filterAction, dateRange],
+    staleTime: 30 * 1000,
     queryFn: async () => {
       let query = supabase
         .from("admin_activity_logs")
@@ -130,8 +130,25 @@ export default function ActivityLogsPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="h-12 rounded-xl animate-pulse bg-black-surface" />
-        <div className="h-96 rounded-2xl animate-pulse bg-black-surface" />
+        <div className="h-12 rounded-xl animate-pulse" style={{ background: "var(--color-black-surface)" }} />
+        <div className="h-96 rounded-2xl animate-pulse" style={{ background: "var(--color-black-surface)" }} />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-64 gap-4">
+        <p style={{ color: "var(--text-secondary)" }}>
+          Could not load activity logs.
+        </p>
+        <button
+          onClick={() => refetch()}
+          className="px-4 py-2 rounded-xl font-semibold"
+          style={{ background: "var(--color-green-primary)", color: "#ffffff" }}
+        >
+          Retry
+        </button>
       </div>
     );
   }
@@ -232,15 +249,12 @@ export default function ActivityLogsPage() {
         className="card rounded-xl overflow-hidden"
       >
         <div className="p-6 space-y-4">
-          {filteredLogs?.map((log, index) => {
+          {filteredLogs?.map((log) => {
             const actionStyle = getActionColor(log.action_type);
 
             return (
-              <motion.div
+              <div
                 key={log.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
                 className="card p-4 rounded-xl flex items-start gap-4"
               >
                 {/* Icon */}
@@ -314,7 +328,7 @@ export default function ActivityLogsPage() {
                     </p>
                   )}
                 </div>
-              </motion.div>
+              </div>
             );
           })}
 

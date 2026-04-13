@@ -4,6 +4,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAdminAuth } from "@/hooks/use-admin-auth";
 import {
@@ -65,6 +66,13 @@ export default function AdminDashboardLayout({ children }) {
   const { adminData, isLoading, logout, isLoggingOut } = useAdminAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [now, setNow] = useState(() => new Date());
+
+  // Tick the clock every minute
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -170,7 +178,7 @@ export default function AdminDashboardLayout({ children }) {
             <div
               className="w-10 h-10 rounded-xl flex items-center justify-center"
               style={{
-                background: "linear-gradient(135deg, #1ed760, #16b455)",
+                background: "#1ed760",
               }}
             >
               <span className="text-white font-bold text-lg">L</span>
@@ -210,7 +218,7 @@ export default function AdminDashboardLayout({ children }) {
             const isActive = pathname === item.href;
 
             return (
-              <a
+              <Link
                 key={item.name}
                 href={item.href}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors duration-150 ${
@@ -226,7 +234,7 @@ export default function AdminDashboardLayout({ children }) {
               >
                 <Icon className="w-5 h-5 shrink-0" />
                 <span>{item.name}</span>
-              </a>
+              </Link>
             );
           })}
         </nav>
@@ -244,7 +252,7 @@ export default function AdminDashboardLayout({ children }) {
               <div
                 className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
                 style={{
-                  background: "linear-gradient(135deg, #1ed760, #16b455)",
+                  background: "#1ed760",
                 }}
               >
                 <span className="text-white font-bold">
@@ -332,7 +340,7 @@ export default function AdminDashboardLayout({ children }) {
                 className="text-sm font-semibold"
                 style={{ color: "var(--text-primary)" }}
               >
-                {new Date().toLocaleDateString("en-US", {
+                {now.toLocaleDateString("en-US", {
                   weekday: "long",
                   year: "numeric",
                   month: "long",
@@ -340,7 +348,7 @@ export default function AdminDashboardLayout({ children }) {
                 })}
               </p>
               <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                {new Date().toLocaleTimeString("en-US", {
+                {now.toLocaleTimeString("en-US", {
                   hour: "2-digit",
                   minute: "2-digit",
                 })}

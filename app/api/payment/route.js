@@ -18,8 +18,6 @@ export async function GET(request) {
       );
     }
 
-    console.log("Checking payment status for tx_ref:", txRef);
-
     // Check database for payment status
     const { data: payment, error } = await supabase
       .from("payments")
@@ -28,8 +26,6 @@ export async function GET(request) {
       .single();
 
     if (error) {
-      console.error("Payment lookup error:", error);
-
       // If payment not found, return pending status (might not be created yet)
       if (error.code === "PGRST116") {
         return NextResponse.json({
@@ -46,8 +42,6 @@ export async function GET(request) {
         { status: 500 }
       );
     }
-
-    console.log("Payment status:", payment.status);
 
     return NextResponse.json({
       success: true,

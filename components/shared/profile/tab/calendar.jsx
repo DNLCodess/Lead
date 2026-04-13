@@ -2,6 +2,7 @@
 
 "use client";
 
+import { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useProfileStore } from "@/lib/store/profile-store";
 import { useUnlockedWeeks, useAllWeekTitles, useWeekContent } from "@/hooks/use-profile";
@@ -80,7 +81,25 @@ export default function CalendarTab({ profile }) {
   const currentWeek = profile?.current_week || 1;
   const isLoading = weeksLoading || titlesLoading;
   const isCurrentWeekUnlocked = unlockedWeeks.includes(currentWeek);
-  const { data: currentWeekContent } = useWeekContent(currentWeek);
+  const { data: currentWeekContent, isLoading: currentWeekLoading } = useWeekContent(currentWeek);
+
+  // Memoize per-phase derived data — avoids recomputing 52 includes() on every render
+  const phaseData = useMemo(
+    () =>
+      PHASES.map((phase) => {
+        const [start, end] = phase.weeks;
+        const phaseWeeks = Array.from({ length: end - start + 1 }, (_, i) => start + i);
+        const unlockedInPhase = phaseWeeks.filter((w) => unlockedWeeks.includes(w)).length;
+        return {
+          ...phase,
+          phaseWeeks,
+          unlockedInPhase,
+          isPhaseStarted: unlockedInPhase > 0,
+          isPhaseComplete: unlockedInPhase === phaseWeeks.length,
+        };
+      }),
+    [unlockedWeeks]
+  );
 
   if (isLoading) {
     return (
@@ -107,7 +126,7 @@ export default function CalendarTab({ profile }) {
         className="card p-5 flex items-start gap-4 cursor-pointer group"
         style={{
           background: isCurrentWeekUnlocked
-            ? "linear-gradient(135deg, #0d1f12, var(--color-black-surface))"
+            ? "linear-gradient(180deg, #0d1f12, var(--color-black-surface))"
             : "var(--color-black-surface)",
           border: isCurrentWeekUnlocked
             ? "1px solid rgba(30, 215, 96, 0.25)"
@@ -141,7 +160,9 @@ export default function CalendarTab({ profile }) {
               Week {currentWeek} — Now Studying
             </span>
           </div>
-          {currentWeekContent?.title ? (
+          {currentWeekLoading ? (
+            <div className="h-5 w-48 rounded animate-pulse mt-1" style={{ background: "var(--elevated)" }} />
+          ) : currentWeekContent?.title ? (
             <h3 className="font-bold text-base truncate" style={{ color: "var(--text-primary)" }}>
               {currentWeekContent.title}
             </h3>
@@ -189,12 +210,8 @@ export default function CalendarTab({ profile }) {
           </p>
         </div>
 
-        {PHASES.map((phase, phaseIndex) => {
-          const [start, end] = phase.weeks;
-          const phaseWeeks = Array.from({ length: end - start + 1 }, (_, i) => start + i);
-          const unlockedInPhase = phaseWeeks.filter((w) => unlockedWeeks.includes(w)).length;
-          const isPhaseStarted = unlockedInPhase > 0;
-          const isPhaseComplete = unlockedInPhase === phaseWeeks.length;
+        {phaseData.map((phase, phaseIndex) => {
+          const { phaseWeeks, unlockedInPhase, isPhaseStarted, isPhaseComplete } = phase;
           const PhaseIcon = phase.icon;
 
           return (

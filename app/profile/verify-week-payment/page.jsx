@@ -60,13 +60,6 @@ export default function VerifyWeekPaymentPage() {
         const txRef = searchParams.get("tx_ref");
         const status = searchParams.get("status");
 
-        console.log("Week payment callback received:", {
-          transactionId,
-          txRef,
-          status,
-          allParams: Object.fromEntries(searchParams.entries()),
-        });
-
         // Validate required parameters
         if (!transactionId) {
           setVerificationStatus("failed");
@@ -83,9 +76,6 @@ export default function VerifyWeekPaymentPage() {
           setMessage("Payment was cancelled. Please try again.");
           return;
         }
-
-        // Call verification API directly (no React Query)
-        console.log("Starting week payment verification...");
 
         const response = await fetch(
           `/api/payment/verify/week?transaction_id=${transactionId}`,
@@ -104,8 +94,6 @@ export default function VerifyWeekPaymentPage() {
         }
 
         const result = await response.json();
-
-        console.log("Verification response:", result);
 
         if (!result.success) {
           throw new Error(result.error || "Verification failed");
@@ -359,7 +347,7 @@ export default function VerifyWeekPaymentPage() {
                 onClick={() => router.push("/profile?tab=calendar")}
                 className="w-full text-white font-semibold"
                 style={{
-                  background: "linear-gradient(135deg, #1ed760, #16b455)",
+                  background: "#1ed760",
                 }}
               >
                 Return to Profile

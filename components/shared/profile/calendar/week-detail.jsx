@@ -38,7 +38,7 @@ export default function WeekDetailModal({ weekNumber, profile, isUnlocked }) {
 
   const confettiPieces = useConfettiPieces();
 
-  const { data: weekContent, isLoading: contentLoading } =
+  const { data: weekContent, isLoading: contentLoading, isError: contentError } =
     useWeekContent(weekNumber);
   const { data: weekNotes } = useWeekNotes(profile?.user_id, weekNumber);
   const saveNotesMutation = useSaveWeekNotes();
@@ -78,8 +78,8 @@ export default function WeekDetailModal({ weekNumber, profile, isUnlocked }) {
         notes: notes.trim(),
       });
       setSaveSuccess(true);
-    } catch (error) {
-      console.error("Failed to save notes:", error);
+    } catch (_) {
+      // notes save failure is surfaced via mutation error state
     } finally {
       setIsSaving(false);
     }
@@ -116,7 +116,7 @@ export default function WeekDetailModal({ weekNumber, profile, isUnlocked }) {
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             className="fixed top-8 left-1/2 -translate-x-1/2 z-60 px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3"
             style={{
-              background: "linear-gradient(135deg, #1ed760, #16b455)",
+              background: "#1ed760",
               boxShadow: "0 10px 40px rgba(30, 215, 96, 0.4)",
             }}
           >
@@ -153,7 +153,7 @@ export default function WeekDetailModal({ weekNumber, profile, isUnlocked }) {
           className="relative p-6 border-b"
           style={{
             background: isUnlocked
-              ? "linear-gradient(135deg, #142b1c, var(--surface))"
+              ? "linear-gradient(180deg, #142b1c, var(--surface))"
               : "var(--elevated)",
             borderColor: "var(--color-black-border)",
           }}
@@ -214,7 +214,7 @@ export default function WeekDetailModal({ weekNumber, profile, isUnlocked }) {
         {/* Content */}
         <div className="overflow-y-auto" style={{ maxHeight: "calc(90vh - 160px)" }}>
 
-          {/* Loading skeleton (U6) */}
+          {/* Loading skeleton */}
           {contentLoading ? (
             <div className="p-6 space-y-4">
               {[1, 2, 3].map((i) => (
@@ -224,6 +224,19 @@ export default function WeekDetailModal({ weekNumber, profile, isUnlocked }) {
                   style={{ background: "var(--elevated)" }}
                 />
               ))}
+            </div>
+          ) : contentError ? (
+            <div className="p-6 text-center">
+              <p className="text-sm mb-3" style={{ color: "var(--text-secondary)" }}>
+                Could not load week content. Please try again.
+              </p>
+              <button
+                onClick={() => window.location.reload()}
+                className="text-xs px-4 py-2 rounded-lg font-medium"
+                style={{ background: "var(--elevated)", color: "var(--text-primary)", border: "1px solid var(--border-color)" }}
+              >
+                Retry
+              </button>
             </div>
           ) : isUnlocked ? (
             /* Unlocked content */
@@ -247,7 +260,7 @@ export default function WeekDetailModal({ weekNumber, profile, isUnlocked }) {
                     ) : (
                       <div
                         className="w-full h-full flex items-center justify-center font-bold"
-                        style={{ background: "linear-gradient(135deg, #1ed760, #16b455)", color: "#062010" }}
+                        style={{ background: "#1ed760", color: "#062010" }}
                       >
                         {weekContent.lecturer.name?.[0]}
                       </div>
@@ -343,7 +356,7 @@ export default function WeekDetailModal({ weekNumber, profile, isUnlocked }) {
                     rel="noopener noreferrer"
                     className="flex items-center justify-between p-4 rounded-2xl transition-all hover:scale-[1.01] hover:brightness-110"
                     style={{
-                      background: "linear-gradient(135deg, #0088cc, #006699)",
+                      background: "#0088cc",
                       color: "#ffffff",
                     }}
                   >
@@ -418,7 +431,7 @@ export default function WeekDetailModal({ weekNumber, profile, isUnlocked }) {
                     className="px-5 py-2 rounded-lg font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{
                       background: notes.trim()
-                        ? "linear-gradient(135deg, #1ed760, #16b455)"
+                        ? "#1ed760"
                         : "var(--color-black-border)",
                       color: notes.trim() ? "#062010" : "var(--text-muted)",
                     }}
@@ -500,7 +513,7 @@ export default function WeekDetailModal({ weekNumber, profile, isUnlocked }) {
                       ) : (
                         <div
                           className="w-full h-full flex items-center justify-center text-xs font-bold"
-                          style={{ background: "linear-gradient(135deg, #1ed760, #16b455)", color: "#062010" }}
+                          style={{ background: "#1ed760", color: "#062010" }}
                         >
                           {weekContent.lecturer.name?.[0]}
                         </div>
@@ -523,7 +536,7 @@ export default function WeekDetailModal({ weekNumber, profile, isUnlocked }) {
                 onClick={handleScrollToPayment}
                 className="w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all hover:brightness-110 active:scale-[0.98]"
                 style={{
-                  background: "linear-gradient(135deg, #1ed760, #16b455)",
+                  background: "#1ed760",
                   color: "#062010",
                   boxShadow: "0 4px 20px rgba(30, 215, 96, 0.3)",
                 }}

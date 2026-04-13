@@ -2,6 +2,7 @@
 
 "use client";
 
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   BookOpen,
@@ -51,7 +52,7 @@ export default function OverviewTab({ profile }) {
 
   const goToCalendar = () => setActiveTab("calendar");
 
-  const stats = [
+  const stats = useMemo(() => [
     {
       label: "Current Week",
       value: `Week ${currentWeek}`,
@@ -65,7 +66,6 @@ export default function OverviewTab({ profile }) {
       sub: `of 52 total`,
       Icon: Unlock,
       color: "#3b82f6",
-      // Only show trend if meaningful
       trend: unlockedCount > 0 ? "up" : null,
     },
     {
@@ -74,7 +74,7 @@ export default function OverviewTab({ profile }) {
       sub: "to full completion",
       Icon: Lock,
       color: "#f59e0b",
-      trend: null, // No trend arrow — remaining doesn't "trend"
+      trend: null,
     },
     {
       label: "Program Progress",
@@ -84,7 +84,7 @@ export default function OverviewTab({ profile }) {
       color: currentPhase.color,
       trend: progress > 0 ? "up" : null,
     },
-  ];
+  ], [currentWeek, unlockedCount, progress, currentPhase]);
 
   return (
     <div className="space-y-6">
@@ -95,7 +95,7 @@ export default function OverviewTab({ profile }) {
         transition={{ duration: 0.35 }}
         className="card p-6"
         style={{
-          background: "linear-gradient(135deg, #0d1f12, var(--color-black-surface))",
+          background: "linear-gradient(180deg, #0d1f12, var(--color-black-surface))",
           border: "1px solid rgba(30, 215, 96, 0.2)",
         }}
       >
@@ -312,7 +312,7 @@ export default function OverviewTab({ profile }) {
           onClick={goToPayment}
           className="card-interactive p-5 text-left flex items-center gap-4"
           style={{
-            background: "linear-gradient(135deg, #1a3a22, #1c2f1e)",
+            background: "#1a3a22",
             border: "1px solid rgba(30, 215, 96, 0.25)",
           }}
         >

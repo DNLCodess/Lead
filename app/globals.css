@@ -68,23 +68,19 @@
 
   --gradient-green-glow: radial-gradient(
     circle at top right,
-    rgba(30, 215, 96, 0.22),
+    rgba(30, 215, 96, 0.12),
     #080c12 60%
   );
 
   --gradient-hero: linear-gradient(
-    135deg,
+    180deg,
     #080c12 0%,
-    #111827 60%,
-    #145a32 100%
+    #0d1118 55%,
+    #0f1a12 100%
   );
 
-  --gradient-cta: linear-gradient(
-    135deg,
-    #1ed760 0%,
-    #16b455 50%,
-    #145a32 100%
-  );
+  /* CTAs use flat var(--color-green-primary) — never gradient on buttons */
+  --gradient-cta: var(--color-green-primary);
 
   --gradient-light-ambient: linear-gradient(
     180deg,
@@ -148,6 +144,37 @@
   .font-news {
     font-family: var(--font-news), ui-serif, Georgia, serif;
   }
+}
+
+/* =========================
+   NOISE TEXTURE UTILITY
+   The single technique that separates premium dark UIs
+   from flat "AI-generated" gradients. Pair with
+   absolute/fixed and inset-0 positioning classes.
+   ========================= */
+.noise-overlay {
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* =========================
+   AMBIENT ORB DRIFT
+   Only `transform` animates — GPU-composited, no layout
+   triggers. Blur, opacity, and background are static.
+   Duration 12–22s: imperceptibly slow, never distracting.
+   ========================= */
+@keyframes orb-drift-1 {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(60px, 40px) scale(1.08); }
+}
+@keyframes orb-drift-2 {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(-40px, -60px) scale(0.94); }
+}
+@keyframes orb-drift-3 {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(30px, -50px) scale(1.05); }
 }
 
 /* =========================
@@ -304,4 +331,13 @@ p {
 /* D10: Small labels and badges stay tighter */
 .text-xs, .text-sm {
   line-height: 1.5;
+}
+
+/* Week card: current-week pulse ring — CSS animation keeps it off the JS thread */
+@keyframes week-card-pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50%       { opacity: 0;   transform: scale(1.08); }
+}
+.week-card-pulse {
+  animation: week-card-pulse 2.4s ease-in-out infinite;
 }

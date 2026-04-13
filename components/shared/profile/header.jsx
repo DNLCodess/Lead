@@ -49,7 +49,7 @@ export default function ProfileHeader({ profile }) {
               <div
                 className="w-full h-full flex items-center justify-center text-2xl sm:text-3xl md:text-4xl font-bold"
                 style={{
-                  background: "linear-gradient(135deg, #1ed760, #16b455)",
+                  background: "#1ed760",
                   color: "var(--color-black-base)",
                 }}
               >

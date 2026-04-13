@@ -33,10 +33,6 @@ export function FlutterwavePayment({
   const checkPaymentStatus = useCallback(
     async (attempt = 0) => {
       try {
-        console.log(
-          `[Payment Check ${attempt}] Checking status for tx_ref: ${paymentPayload.tx_ref}`
-        );
-
         const response = await fetch(
           `/api/payment/status?tx_ref=${paymentPayload.tx_ref}`,
           {
@@ -49,18 +45,15 @@ export function FlutterwavePayment({
         );
 
         if (!response.ok) {
-          console.error(`[Payment Check] HTTP ${response.status}`);
           return false;
         }
 
         const data = await response.json();
-        console.log(`[Payment Check] Response:`, data);
 
         if (data.success && data.data) {
           const { status, transaction_id } = data.data;
 
-          if (status === "successful" || status === "completed") {
-            console.log(`[Payment Check] ✅ Payment successful`);
+          if (status === "successful") {
             callbackReceivedRef.current = true;
             setPaymentStatus("success");
             setStatusMessage("Payment confirmed! Setting up your account...");
@@ -83,7 +76,6 @@ export function FlutterwavePayment({
           }
 
           if (status === "failed" || status === "cancelled") {
-            console.log(`[Payment Check] ❌ Payment ${status}`);
             setPaymentStatus("failed");
             setStatusMessage(`Payment ${status}. Please try again.`);
             setCanRetry(true);
@@ -95,14 +87,11 @@ export function FlutterwavePayment({
             return true;
           }
 
-          // Still pending
-          console.log(`[Payment Check] ⏳ Payment pending (${status})`);
           return false;
         }
 
         return false;
-      } catch (error) {
-        console.error("[Payment Check] Error:", error);
+      } catch {
         return false;
       }
     },
@@ -111,8 +100,6 @@ export function FlutterwavePayment({
 
   // Start polling with proper cleanup
   const startPolling = useCallback(() => {
-    console.log("[Polling] Starting payment status polling");
-
     // Clear any existing interval
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current);
@@ -129,10 +116,8 @@ export function FlutterwavePayment({
     pollingIntervalRef.current = setInterval(async () => {
       setPollingAttempts((prev) => {
         const newCount = prev + 1;
-        console.log(`[Polling] Attempt ${newCount}/${MAX_POLLING_ATTEMPTS}`);
 
         if (newCount >= MAX_POLLING_ATTEMPTS) {
-          console.log("[Polling] Max attempts reached");
           clearInterval(pollingIntervalRef.current);
           pollingIntervalRef.current = null;
 
@@ -157,8 +142,6 @@ export function FlutterwavePayment({
   // Initialize Flutterwave payment
   const initializePayment = useCallback(() => {
     try {
-      console.log("[Flutterwave] Initializing payment modal");
-
       window.FlutterwaveCheckout({
         public_key: FLUTTERWAVE_PUBLIC_KEY,
         tx_ref: paymentPayload.tx_ref,
@@ -171,14 +154,9 @@ export function FlutterwavePayment({
         meta: paymentPayload.meta,
 
         callback: function (response) {
-          console.log("[Flutterwave] Callback received:", response);
           callbackReceivedRef.current = true;
 
-          if (
-            response.status === "successful" ||
-            response.status === "completed"
-          ) {
-            console.log("[Flutterwave] ✅ Payment successful via callback");
+          if (response.status === "successful") {
             setPaymentStatus("success");
             setStatusMessage("Payment successful! Setting up your account...");
 
@@ -196,7 +174,6 @@ export function FlutterwavePayment({
               });
             }, 1500);
           } else {
-            console.log("[Flutterwave] ❌ Payment failed via callback");
             setPaymentStatus("failed");
             setStatusMessage(`Payment ${response.status}`);
             setCanRetry(true);
@@ -205,28 +182,16 @@ export function FlutterwavePayment({
         },
 
         onclose: function () {
-          console.log("[Flutterwave] Modal closed by user");
           modalClosedTimeRef.current = Date.now();
 
-          // If callback already received, do nothing
           if (callbackReceivedRef.current) {
-            console.log(
-              "[Flutterwave] Callback already processed, ignoring close"
-            );
             return;
           }
 
           // Wait for potential late callback
           setTimeout(() => {
             if (!callbackReceivedRef.current) {
-              console.log(
-                "[Flutterwave] No callback received, starting polling"
-              );
               startPolling();
-            } else {
-              console.log(
-                "[Flutterwave] Late callback received, skipping polling"
-              );
             }
           }, 2000); // 2s grace period for slow callbacks
         },
@@ -242,12 +207,9 @@ export function FlutterwavePayment({
 
   // Handle script load
   const handleScriptLoad = () => {
-    console.log("[Script] Flutterwave script loaded");
-
     if (typeof window !== "undefined" && window.FlutterwaveCheckout) {
       initializePayment();
     } else {
-      console.error("[Script] FlutterwaveCheckout not available");
       setPaymentStatus("failed");
       setStatusMessage("Payment gateway failed to load");
       setCanRetry(true);
@@ -258,7 +220,6 @@ export function FlutterwavePayment({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      console.log("[Cleanup] Clearing polling interval");
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
         pollingIntervalRef.current = null;
@@ -293,8 +254,7 @@ export function FlutterwavePayment({
         src="https://checkout.flutterwave.com/v3.js"
         strategy="afterInteractive"
         onLoad={handleScriptLoad}
-        onError={(e) => {
-          console.error("[Script] Failed to load:", e);
+        onError={() => {
           setPaymentStatus("failed");
           setStatusMessage("Failed to load payment gateway");
           setCanRetry(true);

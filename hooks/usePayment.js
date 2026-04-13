@@ -9,16 +9,11 @@ export function useInitializePayment() {
   const [retryCount, setRetryCount] = useState(0);
 
   return useMutation({
-    mutationFn: (registrationData) => {
-      console.log("[useInitializePayment] Starting...");
-      return PaymentService.initializePayment(registrationData);
-    },
-    onError: (error) => {
-      console.error("[useInitializePayment] Failed:", error);
+    mutationFn: (registrationData) => PaymentService.initializePayment(registrationData),
+    onError: () => {
       setRetryCount((prev) => prev + 1);
     },
-    onSuccess: (data) => {
-      console.log("[useInitializePayment] Success:", data);
+    onSuccess: () => {
       setRetryCount(0);
     },
     retry: false, // We handle retries in the service
@@ -31,16 +26,7 @@ export function useInitializePayment() {
  */
 export function useVerifyPayment() {
   return useMutation({
-    mutationFn: (transactionId) => {
-      console.log("[useVerifyPayment] Verifying:", transactionId);
-      return PaymentService.verifyPayment(transactionId);
-    },
-    onError: (error) => {
-      console.error("[useVerifyPayment] Failed:", error);
-    },
-    onSuccess: (data) => {
-      console.log("[useVerifyPayment] Success:", data);
-    },
+    mutationFn: (transactionId) => PaymentService.verifyPayment(transactionId),
     retry: false,
   });
 }
@@ -74,7 +60,7 @@ export function usePaymentStatus(txRef, enabled = true) {
       // Stop polling if payment is successful, failed, or cancelled
       if (
         data?.status &&
-        ["successful", "completed", "failed", "cancelled"].includes(data.status)
+        ["successful", "failed", "cancelled", "expired"].includes(data.status)
       ) {
         return false;
       }
@@ -92,16 +78,7 @@ export function usePaymentStatus(txRef, enabled = true) {
  */
 export function useRegisterWithPayment() {
   return useMutation({
-    mutationFn: (paymentId) => {
-      console.log("[useRegisterWithPayment] Starting:", paymentId);
-      return PaymentService.registerWithPayment(paymentId);
-    },
-    onError: (error) => {
-      console.error("[useRegisterWithPayment] Failed:", error);
-    },
-    onSuccess: (data) => {
-      console.log("[useRegisterWithPayment] Success:", data);
-    },
+    mutationFn: (paymentId) => PaymentService.registerWithPayment(paymentId),
     retry: false,
   });
 }

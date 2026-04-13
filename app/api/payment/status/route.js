@@ -18,8 +18,6 @@ export async function GET(request) {
       );
     }
 
-    console.log(`[Status API] Checking status for tx_ref: ${txRef}`);
-
     // Query payment from database
     const { data: payment, error } = await supabase
       .from("payments")
@@ -37,8 +35,6 @@ export async function GET(request) {
       }
       throw error;
     }
-
-    console.log(`[Status API] Payment status: ${payment.status}`);
 
     return NextResponse.json({
       success: true,

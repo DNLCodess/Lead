@@ -37,7 +37,7 @@ export function useAdminAuth() {
       }
 
       return {
-        user: session.user,
+        user,
         lecturer,
         permissions: {
           canManageContent: lecturer.can_manage_content,

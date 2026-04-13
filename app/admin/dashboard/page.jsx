@@ -2,10 +2,12 @@
 
 "use client";
 
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { AdminService } from "@/lib/services/admin-service";
+import Link from "next/link";
 import {
   TrendingUp,
   TrendingDown,
@@ -18,13 +20,14 @@ import {
 } from "lucide-react";
 
 export default function AdminDashboardPage() {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   // Fetch dashboard stats
-  const { data: stats, isLoading } = useQuery({
+  const { data: stats, isLoading, isError, refetch } = useQuery({
     queryKey: ["admin-dashboard-stats"],
     queryFn: () => AdminService.getDashboardStats(supabase),
-    refetchInterval: 30000, // Refetch every 30 seconds
+    staleTime: 30 * 1000,
+    refetchInterval: 30000,
   });
 
   if (isLoading) {
@@ -39,6 +42,23 @@ export default function AdminDashboardPage() {
             />
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-64 gap-4">
+        <p style={{ color: "var(--text-secondary)" }}>
+          Could not load dashboard stats.
+        </p>
+        <button
+          onClick={() => refetch()}
+          className="px-4 py-2 rounded-xl font-semibold"
+          style={{ background: "var(--color-green-primary)", color: "#ffffff" }}
+        >
+          Retry
+        </button>
       </div>
     );
   }
@@ -109,12 +129,14 @@ export default function AdminDashboardPage() {
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <motion.a
+            <motion.div
               key={stat.label}
-              href={stat.href}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
+            >
+            <Link
+              href={stat.href}
               className="card card-interactive p-6 block group"
             >
               <div className="flex items-start justify-between mb-4">
@@ -151,7 +173,8 @@ export default function AdminDashboardPage() {
                 </p>
                 <ArrowUpRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity duration-150" style={{ color: stat.color }} />
               </div>
-            </motion.a>
+            </Link>
+            </motion.div>
           );
         })}
       </div>
@@ -309,14 +332,14 @@ export default function AdminDashboardPage() {
             >
               Recent Students
             </h3>
-            <a
+            <Link
               href="/admin/dashboard/students"
               className="text-sm font-semibold flex items-center gap-1"
               style={{ color: "var(--color-green-primary)" }}
             >
               View All
               <ArrowUpRight className="w-4 h-4" />
-            </a>
+            </Link>
           </div>
 
           <div className="space-y-3">
@@ -335,7 +358,7 @@ export default function AdminDashboardPage() {
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center"
                     style={{
-                      background: "linear-gradient(135deg, #1ed760, #16b455)",
+                      background: "#1ed760",
                     }}
                   >
                     <span className="text-white font-bold text-sm">
@@ -379,14 +402,14 @@ export default function AdminDashboardPage() {
             >
               Recent Payments
             </h3>
-            <a
+            <Link
               href="/admin/dashboard/payments"
               className="text-sm font-semibold flex items-center gap-1"
               style={{ color: "var(--color-green-primary)" }}
             >
               View All
               <ArrowUpRight className="w-4 h-4" />
-            </a>
+            </Link>
           </div>
 
           <div className="space-y-3">

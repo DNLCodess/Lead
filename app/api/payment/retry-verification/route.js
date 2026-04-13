@@ -60,7 +60,7 @@ export async function POST(request) {
     }
 
     // Verify with Flutterwave
-    if (!payment.flw_transaction_id) {
+    if (!payment.transaction_id) {
       return NextResponse.json(
         {
           error:
@@ -71,7 +71,7 @@ export async function POST(request) {
     }
 
     const flwResponse = await fetch(
-      `https://api.flutterwave.com/v3/transactions/${payment.flw_transaction_id}/verify`,
+      `https://api.flutterwave.com/v3/transactions/${payment.transaction_id}/verify`,
       {
         headers: {
           Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,

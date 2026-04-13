@@ -35,6 +35,36 @@ export default function AdminLoginPage() {
         }}
       />
 
+      {/* Orb 1 — top-left drift */}
+      <div
+        className="fixed rounded-full pointer-events-none"
+        style={{
+          width: 500, height: 500,
+          top: "-12%", left: "-8%",
+          background: "hsl(145, 42%, 20%)",
+          filter: "blur(90px)",
+          opacity: 0.12,
+          willChange: "transform",
+          animation: "orb-drift-1 18s ease-in-out infinite alternate",
+        }}
+      />
+      {/* Orb 2 — bottom-right drift */}
+      <div
+        className="fixed rounded-full pointer-events-none"
+        style={{
+          width: 420, height: 420,
+          bottom: "-10%", right: "-6%",
+          background: "hsl(145, 35%, 16%)",
+          filter: "blur(100px)",
+          opacity: 0.10,
+          willChange: "transform",
+          animation: "orb-drift-2 22s ease-in-out infinite alternate",
+        }}
+      />
+
+      {/* Noise texture */}
+      <div className="noise-overlay fixed inset-0" />
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -189,7 +219,7 @@ export default function AdminLoginPage() {
               whileTap={{ scale: 0.98 }}
               className="w-full py-4 rounded-xl font-bold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
-                background: "linear-gradient(135deg, #1ed760, #16b455)",
+                background: "#1ed760",
                 color: "#ffffff",
               }}
             >

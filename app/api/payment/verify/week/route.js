@@ -80,8 +80,6 @@ export async function GET(request) {
 
     // If already processed, return success immediately
     if (existingWeeks && existingWeeks.length > 0) {
-      console.log("Payment already processed, returning existing weeks");
-
       // Update payment status if needed
       if (payment.status !== "successful") {
         await supabaseAdmin

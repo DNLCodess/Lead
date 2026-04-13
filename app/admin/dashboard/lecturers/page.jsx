@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
@@ -22,14 +22,15 @@ import {
 } from "lucide-react";
 
 export default function LecturersPage() {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const queryClient = useQueryClient();
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingLecturer, setEditingLecturer] = useState(null);
 
   // Fetch lecturers
-  const { data: lecturers, isLoading } = useQuery({
+  const { data: lecturers, isLoading, isError, refetch } = useQuery({
     queryKey: ["admin-lecturers"],
+    staleTime: 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("lecturers")
@@ -79,15 +80,33 @@ export default function LecturersPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="h-12 rounded-xl animate-pulse bg-black-surface" />
+        <div className="h-12 rounded-xl animate-pulse" style={{ background: "var(--color-black-surface)" }} />
         <div className="grid grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="h-64 rounded-2xl animate-pulse bg-black-surface"
+              className="h-64 rounded-2xl animate-pulse"
+              style={{ background: "var(--color-black-surface)" }}
             />
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-64 gap-4">
+        <p style={{ color: "var(--text-secondary)" }}>
+          Could not load lecturers.
+        </p>
+        <button
+          onClick={() => refetch()}
+          className="px-4 py-2 rounded-xl font-semibold"
+          style={{ background: "var(--color-green-primary)", color: "#ffffff" }}
+        >
+          Retry
+        </button>
       </div>
     );
   }
@@ -136,10 +155,9 @@ export default function LecturersPage() {
           >
             {/* Header with Image */}
             <div
-              className="relative h-48 bg-gradient-to-br"
+              className="relative h-48"
               style={{
-                background:
-                  "linear-gradient(135deg, var(--color-green-primary), var(--color-green-hover))",
+                background: "var(--color-black-elevated)",
               }}
             >
               {lecturer.image_url ? (
@@ -389,7 +407,7 @@ export default function LecturersPage() {
 
 // Lecturer Form Modal
 function LecturerFormModal({ isOpen, lecturer, onClose, onSuccess }) {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const isEdit = !!lecturer;
 
   const [formData, setFormData] = useState({

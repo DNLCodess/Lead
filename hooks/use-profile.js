@@ -25,6 +25,7 @@ export function useUnlockedWeeks(userId) {
     queryKey: ["unlocked-weeks", userId],
     queryFn: () => ProfileService.getUnlockedWeeks(userId),
     enabled: !!userId,
+    staleTime: 60 * 1000, // 1 min — changes after payment; short enough to pick up new unlocks
   });
 }
 
@@ -33,6 +34,7 @@ export function useWeekContent(weekNumber) {
     queryKey: ["week-content", weekNumber],
     queryFn: () => ProfileService.getWeekContent(weekNumber),
     enabled: !!weekNumber,
+    staleTime: 60 * 60 * 1000, // 1 hour — content changes rarely
   });
 }
 
@@ -41,6 +43,7 @@ export function useWeekNotes(userId, weekNumber) {
     queryKey: ["week-notes", userId, weekNumber],
     queryFn: () => ProfileService.getWeekNotes(userId, weekNumber),
     enabled: !!userId && !!weekNumber,
+    staleTime: 5 * 60 * 1000, // 5 min — user's own notes; no need to refetch on every focus
   });
 }
 

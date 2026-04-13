@@ -479,14 +479,8 @@ const RegistrationForm = () => {
     setIsSubmitting(true);
 
     try {
-      console.log("[Registration] Initializing payment...");
-
       initializePayment(formData, {
         onSuccess: (data) => {
-          console.log(
-            "[Registration] Payment initialization successful:",
-            data
-          );
           setPaymentPayload(data.paymentPayload);
           setShowPaymentModal(true);
           setIsSubmitting(false);
@@ -511,7 +505,6 @@ const RegistrationForm = () => {
 
   // Payment callbacks
   const handlePaymentSuccess = (response) => {
-    console.log("[Registration] Payment successful:", response);
     setShowPaymentModal(false);
 
     // Clear form storage on successful payment
@@ -522,7 +515,6 @@ const RegistrationForm = () => {
   };
 
   const handlePaymentClose = () => {
-    console.log("[Registration] Payment modal closed");
     setShowPaymentModal(false);
     setPaymentPayload(null);
   };

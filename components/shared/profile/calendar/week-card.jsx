@@ -20,7 +20,7 @@ export default function WeekCard({ weekNumber, isUnlocked, isCurrent, isUpcoming
 
   const stateStyles = {
     current: {
-      background: "linear-gradient(135deg, #1ed760, #17c255)",
+      background: "#1ed760",
       border: "1.5px solid #1ed760",
       color: "#062010",
       shadow: "0 4px 16px rgba(30, 215, 96, 0.35)",
@@ -103,13 +103,11 @@ export default function WeekCard({ weekNumber, isUnlocked, isCurrent, isUpcoming
         </p>
       )}
 
-      {/* Pulse ring on current week */}
+      {/* Pulse ring on current week — CSS animation (no JS animation thread) */}
       {isCurrent && (
-        <motion.div
-          className="absolute inset-0 rounded-xl pointer-events-none"
+        <div
+          className="absolute inset-0 rounded-xl pointer-events-none week-card-pulse"
           style={{ border: "1.5px solid #1ed760" }}
-          animate={{ opacity: [0.6, 0, 0.6], scale: [1, 1.1, 1] }}
-          transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
         />
       )}
     </motion.button>

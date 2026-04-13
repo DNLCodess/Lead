@@ -38,22 +38,14 @@ export default function VerifyPaymentPage() {
     try {
       if (!txRef) return false;
 
-      console.log(
-        `Polling payment status (attempt ${
-          pollingAttempts + 1
-        }/${MAX_POLLING_ATTEMPTS})...`
-      );
-
       const response = await fetch(`/api/payment/status?tx_ref=${txRef}`);
       const data = await response.json();
 
       if (data.success && data.data) {
         const { status: paymentStatus } = data.data;
 
-        console.log("Current payment status:", paymentStatus);
-
         // Payment successful
-        if (paymentStatus === "successful" || paymentStatus === "completed") {
+        if (paymentStatus === "successful") {
           setMessage("Payment confirmed! Creating your account...");
           return true; // Stop polling
         }
@@ -71,8 +63,7 @@ export default function VerifyPaymentPage() {
       }
 
       return false;
-    } catch (error) {
-      console.error("Error checking payment status:", error);
+    } catch {
       return false;
     }
   }, [txRef, pollingAttempts]);
@@ -80,13 +71,6 @@ export default function VerifyPaymentPage() {
   // Main verification and registration flow
   const verifyAndRegister = useCallback(async () => {
     try {
-      console.log("Payment callback received:", {
-        transactionId,
-        txRef,
-        status,
-        allParams: Object.fromEntries(searchParams.entries()),
-      });
-
       // Validate required parameters
       if (!transactionId && !txRef) {
         setVerificationStatus("failed");
@@ -111,12 +95,7 @@ export default function VerifyPaymentPage() {
         try {
           const existingPayment = await PaymentService.getPaymentByTxRef(txRef);
 
-          console.log("Existing payment record:", existingPayment);
-
-          if (
-            existingPayment?.status === "successful" ||
-            existingPayment?.status === "completed"
-          ) {
+          if (existingPayment?.status === "successful") {
             // Check if user was already created
             if (existingPayment.user_id) {
               setMessage("Payment already verified! Signing you in...");
@@ -141,27 +120,20 @@ export default function VerifyPaymentPage() {
                 return;
               }
             } else {
-              // Payment successful but user not created yet - proceed with registration
-              console.log("Payment verified, proceeding with registration...");
+              // Payment verified but user not created yet - proceed with registration
             }
           }
-        } catch (error) {
-          console.log(
-            "No existing payment found, proceeding with verification:",
-            error
-          );
+        } catch {
+          // No existing payment found, proceed with verification
         }
       }
 
       // Step 1: Verify payment with Flutterwave (API route handles DB update)
-      console.log("Starting payment verification...");
       setMessage("Verifying payment with payment gateway...");
 
       const verificationData = await PaymentService.verifyPayment(
         transactionId || txRef
       );
-
-      console.log("Verification response:", verificationData);
 
       if (!verificationData.verified) {
         setVerificationStatus("failed");
@@ -178,16 +150,10 @@ export default function VerifyPaymentPage() {
 
       // Step 2: Register user
       setMessage("Payment verified! Creating your account...");
-      console.log(
-        "Starting registration with payment ID:",
-        verificationData.payment.id
-      );
 
       const registrationResult = await PaymentService.registerWithPayment(
         verificationData.payment.id
       );
-
-      console.log("Registration result:", registrationResult);
 
       setVerificationStatus("success");
       setMessage("Registration successful! Welcome to LEAD!");
@@ -204,25 +170,21 @@ export default function VerifyPaymentPage() {
           const type = url.searchParams.get("type");
 
           if (token && type) {
-            console.log("Attempting auto sign-in...");
             const { error } = await supabase.auth.verifyOtp({
               token_hash: token,
               type: type,
             });
 
             if (!error) {
-              console.log("Auto sign-in successful");
               // Show welcome screen after successful auth
               setTimeout(() => {
                 setShowWelcome(true);
               }, 1500);
               return;
-            } else {
-              console.error("Auto sign-in error:", error);
             }
           }
-        } catch (authError) {
-          console.error("Auto sign-in failed:", authError);
+        } catch {
+          // Auto sign-in failed, user will log in manually
         }
       }
 
@@ -231,8 +193,6 @@ export default function VerifyPaymentPage() {
         setShowWelcome(true);
       }, 1500);
     } catch (error) {
-      console.error("Verification/Registration error:", error);
-
       // Retry logic for network errors
       if (
         retryCount < 3 &&
@@ -240,7 +200,6 @@ export default function VerifyPaymentPage() {
           error.message?.includes("network") ||
           error.message?.includes("timeout"))
       ) {
-        console.log(`Network error, retrying... (${retryCount + 1}/3)`);
         setMessage(`Connection issue. Retrying (${retryCount + 1}/3)...`);
 
         setTimeout(() => {
@@ -306,7 +265,7 @@ export default function VerifyPaymentPage() {
   useEffect(() => {
     const initialize = async () => {
       // If status is successful, proceed directly
-      if (status === "successful" || status === "completed") {
+      if (status === "successful") {
         await verifyAndRegister();
       } else if (txRef) {
         // Otherwise, start polling for status updates

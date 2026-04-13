@@ -65,7 +65,7 @@ export default function ProgressBar({
             transition={{ duration: 1.5, ease: "easeOut" }}
             className="h-full relative"
             style={{
-              background: "linear-gradient(90deg, #1ed760, #16b455, #7ee2a8)",
+              background: "linear-gradient(90deg, #1ed760, #16b455)",
             }}
           >
             {/* Animated Shine Effect */}

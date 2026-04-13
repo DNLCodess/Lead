@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
@@ -22,7 +22,8 @@ import {
 } from "lucide-react";
 
 export default function PaymentsPage() {
-  const supabase = createClient();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const supabase = useMemo(() => createClient(), []);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterCurrency, setFilterCurrency] = useState("all");
@@ -33,6 +34,7 @@ export default function PaymentsPage() {
   const {
     data: paymentsData,
     isLoading,
+    isError,
     refetch,
   } = useQuery({
     queryKey: ["admin-payments", filterStatus, filterCurrency, dateRange],
@@ -87,24 +89,26 @@ export default function PaymentsPage() {
       if (error) throw error;
 
       // Calculate statistics
+      const successful = data.filter((p) => p.status === "successful");
       const stats = {
         total: data.length,
-        successful: data.filter((p) => p.status === "successful").length,
+        successful: successful.length,
         pending: data.filter((p) => p.status === "pending").length,
         failed: data.filter((p) => p.status === "failed").length,
         totalRevenue: {
-          ngn: data
-            .filter((p) => p.status === "completed" && p.currency === "NGN")
+          ngn: successful
+            .filter((p) => p.currency === "NGN")
             .reduce((sum, p) => sum + parseFloat(p.amount), 0),
-          usd: data
-            .filter((p) => p.status === "completed" && p.currency === "USD")
+          usd: successful
+            .filter((p) => p.currency === "USD")
             .reduce((sum, p) => sum + parseFloat(p.amount), 0),
         },
       };
 
       return { payments: data, stats };
     },
-    refetchInterval: 30000, // Refetch every 30 seconds
+    staleTime: 30 * 1000,
+    refetchInterval: 30 * 1000,
   });
 
   const { payments = [], stats } = paymentsData || {};
@@ -154,7 +158,7 @@ export default function PaymentsPage() {
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case "completed":
+      case "successful":
         return <CheckCircle className="w-5 h-5" />;
       case "pending":
         return <Clock className="w-5 h-5" />;
@@ -167,7 +171,7 @@ export default function PaymentsPage() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "completed":
+      case "successful":
         return { bg: "#1ed76020", color: "#1ed760" };
       case "pending":
         return { bg: "#f59e0b20", color: "#f59e0b" };
@@ -181,16 +185,28 @@ export default function PaymentsPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="h-12 rounded-xl animate-pulse bg-black-surface" />
+        <div className="h-12 rounded-xl animate-pulse" style={{ background: "var(--color-black-surface)" }} />
         <div className="grid grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="h-32 rounded-xl animate-pulse bg-black-surface"
-            />
+            <div key={i} className="h-32 rounded-xl animate-pulse" style={{ background: "var(--color-black-surface)" }} />
           ))}
         </div>
-        <div className="h-96 rounded-2xl animate-pulse bg-black-surface" />
+        <div className="h-96 rounded-2xl animate-pulse" style={{ background: "var(--color-black-surface)" }} />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-4">
+        <p className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>Failed to load payments</p>
+        <button
+          onClick={() => refetch()}
+          className="px-5 py-2.5 rounded-xl font-semibold text-sm"
+          style={{ background: "var(--color-green-primary)", color: "#0a0d12" }}
+        >
+          Retry
+        </button>
       </div>
     );
   }
@@ -389,7 +405,7 @@ export default function PaymentsPage() {
           }}
         >
           <option value="all">All Status</option>
-          <option value="completed">Completed</option>
+          <option value="successful">Completed</option>
           <option value="pending">Pending</option>
           <option value="failed">Failed</option>
           <option value="cancelled">Cancelled</option>
@@ -486,25 +502,15 @@ export default function PaymentsPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredPayments?.map((payment, index) => {
+              {filteredPayments?.map((payment) => {
                 const statusStyle = getStatusColor(payment.status);
                 return (
-                  <motion.tr
+                  <tr
                     key={payment.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.02 }}
-                    className="transition-colors"
-                    style={{
-                      borderBottom: "1px solid var(--color-black-border)",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background =
-                        "var(--color-black-elevated)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "transparent";
-                    }}
+                    className="transition-colors duration-150"
+                    style={{ borderBottom: "1px solid var(--color-black-border)" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "var(--color-black-elevated)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
                   >
                     {/* Transaction */}
                     <td className="px-6 py-4">
@@ -615,7 +621,7 @@ export default function PaymentsPage() {
                         View
                       </button>
                     </td>
-                  </motion.tr>
+                  </tr>
                 );
               })}
             </tbody>
@@ -643,7 +649,7 @@ function PaymentDetailModal({ payment, onClose }) {
   if (!payment) return null;
 
   const statusStyle = {
-    completed: { bg: "#1ed76020", color: "#1ed760" },
+    successful: { bg: "#1ed76020", color: "#1ed760" },
     pending: { bg: "#f59e0b20", color: "#f59e0b" },
     failed: { bg: "#ef444420", color: "#ef4444" },
   }[payment.status] || { bg: "#6b728020", color: "#6b7280" };
@@ -699,7 +705,7 @@ function PaymentDetailModal({ payment, onClose }) {
                   color: statusStyle.color,
                 }}
               >
-                {payment.status === "completed" && (
+                {payment.status === "successful" && (
                   <CheckCircle className="w-5 h-5" />
                 )}
                 {payment.status === "pending" && <Clock className="w-5 h-5" />}

@@ -54,6 +54,36 @@ export default function LoginPage() {
       {/* Background gradient */}
       <div className="fixed inset-0 bg-linear-to-br from-green-primary/5 via-transparent to-green-primary/3 pointer-events-none" />
 
+      {/* Orb 1 — top-left drift */}
+      <div
+        className="fixed rounded-full pointer-events-none"
+        style={{
+          width: 480, height: 480,
+          top: "-10%", left: "-6%",
+          background: "hsl(145, 42%, 20%)",
+          filter: "blur(90px)",
+          opacity: 0.11,
+          willChange: "transform",
+          animation: "orb-drift-1 16s ease-in-out infinite alternate",
+        }}
+      />
+      {/* Orb 2 — bottom-right drift */}
+      <div
+        className="fixed rounded-full pointer-events-none"
+        style={{
+          width: 400, height: 400,
+          bottom: "-8%", right: "-5%",
+          background: "hsl(145, 35%, 16%)",
+          filter: "blur(100px)",
+          opacity: 0.09,
+          willChange: "transform",
+          animation: "orb-drift-2 20s ease-in-out infinite alternate",
+        }}
+      />
+
+      {/* Noise texture */}
+      <div className="noise-overlay fixed inset-0" />
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

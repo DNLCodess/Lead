@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   GraduationCap,
@@ -14,6 +15,23 @@ import {
 import { Button } from "@/components/ui/button";
 
 export default function WelcomeToLead() {
+  const heroRef = useRef(null);
+  const [spotlight, setSpotlight] = useState({ x: 50, y: 30 });
+
+  useEffect(() => {
+    const hero = heroRef.current;
+    if (!hero) return;
+    const handleMove = (e) => {
+      const rect = hero.getBoundingClientRect();
+      setSpotlight({
+        x: ((e.clientX - rect.left) / rect.width) * 100,
+        y: ((e.clientY - rect.top) / rect.height) * 100,
+      });
+    };
+    hero.addEventListener("mousemove", handleMove);
+    return () => hero.removeEventListener("mousemove", handleMove);
+  }, []);
+
   const features = [
     {
       icon: Target,
@@ -49,24 +67,63 @@ export default function WelcomeToLead() {
   return (
     <div className="min-h-screen bg-[var(--background)] overflow-auto">
       {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        {/* Gradient Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0a0d12] via-[#11151c] to-[#145a32] dark:opacity-100 opacity-0" />
+      <section ref={heroRef} className="relative overflow-hidden">
+        {/* Base gradient — dark mode */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0d12] via-[#0d1118] to-[#0f1a12] dark:opacity-100 opacity-0" />
+        {/* Base gradient — light mode */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#f5f7fa] via-[#ffffff] to-[#ecfdf5] dark:opacity-0 opacity-100" />
 
-        {/* Animated Glow Effect */}
-        <motion.div
-          className="absolute top-0 right-0 w-96 h-96 bg-[var(--color-green-primary)] rounded-full blur-[128px] opacity-20"
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.2, 0.3, 0.2],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut",
+        {/* Orb 1 — top-left, primary green tint */}
+        <div
+          className="absolute rounded-full pointer-events-none hidden dark:block"
+          style={{
+            width: 640, height: 640,
+            top: "-18%", left: "-10%",
+            background: "hsl(145, 45%, 22%)",
+            filter: "blur(90px)",
+            opacity: 0.14,
+            willChange: "transform",
+            animation: "orb-drift-1 16s ease-in-out infinite alternate",
           }}
         />
+        {/* Orb 2 — top-right, cooler hue offset */}
+        <div
+          className="absolute rounded-full pointer-events-none hidden dark:block"
+          style={{
+            width: 520, height: 520,
+            top: "-6%", right: "-6%",
+            background: "hsl(155, 38%, 18%)",
+            filter: "blur(100px)",
+            opacity: 0.13,
+            willChange: "transform",
+            animation: "orb-drift-2 20s ease-in-out infinite alternate",
+          }}
+        />
+        {/* Orb 3 — bottom-center, barely there */}
+        <div
+          className="absolute rounded-full pointer-events-none hidden dark:block"
+          style={{
+            width: 400, height: 400,
+            bottom: "-12%", left: "32%",
+            background: "hsl(145, 30%, 16%)",
+            filter: "blur(80px)",
+            opacity: 0.10,
+            willChange: "transform",
+            animation: "orb-drift-3 13s ease-in-out infinite alternate",
+          }}
+        />
+
+        {/* Cursor spotlight — mouse-follow radial */}
+        <div
+          className="absolute inset-0 pointer-events-none hidden dark:block"
+          style={{
+            background: `radial-gradient(circle 700px at ${spotlight.x}% ${spotlight.y}%, rgba(30, 215, 96, 0.07) 0%, transparent 70%)`,
+            transition: "background 0.12s ease-out",
+          }}
+        />
+
+        {/* Noise texture — kills the flat gradient look */}
+        <div className="noise-overlay absolute inset-0" />
 
         <div className="relative max-w-6xl mx-auto px-4 py-20 sm:py-28">
           <motion.div
@@ -299,18 +356,25 @@ export default function WelcomeToLead() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.2 }}
-          className="bg-green-800 rounded-2xl p-12 text-center"
+          className="relative overflow-hidden rounded-2xl p-12 text-center"
+          style={{
+            background: "linear-gradient(180deg, #0f2418 0%, #0c1a10 100%)",
+            border: "1px solid rgba(30, 215, 96, 0.18)",
+            boxShadow: "inset 0 1px 0 rgba(30, 215, 96, 0.1), 0 8px 40px rgba(0, 0, 0, 0.5)",
+          }}
         >
-          <h2 className="text-3xl font-bold text-white mb-4">
+          <div className="noise-overlay absolute inset-0 rounded-2xl" />
+          <div className="relative z-10">
+          <h2 className="text-3xl font-bold text-(--color-white-primary) mb-4">
             Ready to Begin Your Journey?
           </h2>
-          <p className="text-white/90 text-lg mb-8 max-w-2xl mx-auto">
+          <p className="text-(--color-white-secondary) text-lg mb-8 max-w-2xl mx-auto">
             Join thousands of disciples in our Telegram community. Get updates,
             connect with fellow students, and access exclusive resources.
           </p>
           <Button
             asChild
-            className="bg-white text-black-base hover:bg-white/90 px-8 py-6 text-lg rounded-xl shadow-lg"
+            className="bg-[#1ed760] text-[#062010] hover:bg-green-hover px-8 py-6 text-lg rounded-xl font-semibold shadow-lg transition-all"
           >
             <a
               href="https://t.me/+tdjVaX9enhQ0OWU0"
@@ -323,6 +387,7 @@ export default function WelcomeToLead() {
               <ArrowRight className="w-5 h-5" />
             </a>
           </Button>
+          </div>
         </motion.div>
       </section>
     </div>

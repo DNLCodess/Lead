@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
@@ -24,15 +24,16 @@ import {
 } from "lucide-react";
 
 export default function ContentManagementPage() {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const queryClient = useQueryClient();
   const [selectedWeek, setSelectedWeek] = useState(1);
   const [isEditing, setIsEditing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
 
   // Fetch all weeks content
-  const { data: weeksData, isLoading } = useQuery({
+  const { data: weeksData, isLoading, isError, refetch } = useQuery({
     queryKey: ["admin-weeks-content"],
+    staleTime: 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("week_content")
@@ -77,15 +78,33 @@ export default function ContentManagementPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="h-12 rounded-xl animate-pulse bg-black-surface" />
+        <div className="h-12 rounded-xl animate-pulse" style={{ background: "var(--color-black-surface)" }} />
         <div className="grid grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
-              className="h-32 rounded-xl animate-pulse bg-black-surface"
+              className="h-32 rounded-xl animate-pulse"
+              style={{ background: "var(--color-black-surface)" }}
             />
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-64 gap-4">
+        <p style={{ color: "var(--text-secondary)" }}>
+          Could not load week content.
+        </p>
+        <button
+          onClick={() => refetch()}
+          className="px-4 py-2 rounded-xl font-semibold"
+          style={{ background: "var(--color-green-primary)", color: "#ffffff" }}
+        >
+          Retry
+        </button>
       </div>
     );
   }
@@ -140,7 +159,7 @@ export default function ContentManagementPage() {
               className="p-4 rounded-xl transition-all relative"
               style={{
                 background: isSelected
-                  ? "linear-gradient(135deg, #1ed760, #16b455)"
+                  ? "#1ed760"
                   : hasContent
                     ? "var(--color-black-surface)"
                     : "var(--color-black-elevated)",
@@ -237,7 +256,7 @@ export default function ContentManagementPage() {
 
 // Week Content Detail Component
 function WeekContentDetail({ weekData, isEditing, setIsEditing, onUpdate }) {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     title: weekData.title || "",
@@ -321,7 +340,7 @@ function WeekContentDetail({ weekData, isEditing, setIsEditing, onUpdate }) {
           <div
             className="w-12 h-12 rounded-xl flex items-center justify-center"
             style={{
-              background: "linear-gradient(135deg, #1ed760, #16b455)",
+              background: "#1ed760",
             }}
           >
             <span className="text-white font-bold text-lg">
@@ -762,7 +781,7 @@ function WeekContentDetail({ weekData, isEditing, setIsEditing, onUpdate }) {
 
 // Add Week Modal Component
 function AddWeekModal({ isOpen, onClose, weekNumber, onSuccess }) {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [formData, setFormData] = useState({
     week_number: weekNumber,
     title: "",
@@ -820,7 +839,6 @@ function AddWeekModal({ isOpen, onClose, weekNumber, onSuccess }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("Formdata is", formData);
     createMutation.mutate(formData);
   };
 

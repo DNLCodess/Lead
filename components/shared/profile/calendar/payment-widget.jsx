@@ -349,7 +349,7 @@ export default function PaymentWidget({ profile }) {
                 className="relative p-4 transition-all rounded-2xl"
                 style={{
                   background: isSelected
-                    ? "linear-gradient(135deg, #1a3a22, #1d3324)"
+                    ? "#1a3a22"
                     : "var(--elevated)",
                   border: isSelected
                     ? "1.5px solid var(--color-green-primary)"
@@ -449,7 +449,7 @@ export default function PaymentWidget({ profile }) {
           disabled={initializePayment.isPending || !isFlutterwaveLoaded}
           className="w-full py-4 rounded-2xl font-bold text-lg transition-all hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
-            background:  "linear-gradient(135deg, var(--color-green-primary), var(--color-green-hover))",
+            background: "var(--color-green-primary)",
             color:       "#0a0d12",
             boxShadow:   "0 4px 16px rgba(30, 215, 96, 0.3)",
           }}

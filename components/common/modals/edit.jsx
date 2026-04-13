@@ -2,12 +2,14 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
+import { createClient } from "@/lib/supabase/client";
 
 export default function EditProfileModal({ isOpen, onClose, profile }) {
+  const supabase = useMemo(() => createClient(), []);
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     first_name: profile?.first_name || "",
@@ -172,7 +174,7 @@ export default function EditProfileModal({ isOpen, onClose, profile }) {
                   <div
                     className="w-full h-full flex items-center justify-center text-2xl font-bold"
                     style={{
-                      background: "linear-gradient(135deg, #1ed760, #16b455)",
+                      background: "#1ed760",
                       color: "#ffffff",
                     }}
                   >
@@ -401,7 +403,7 @@ export default function EditProfileModal({ isOpen, onClose, profile }) {
               disabled={updateProfile.isPending}
               className="flex-1 px-6 py-3 rounded-lg font-semibold transition-all hover:scale-105 disabled:opacity-50"
               style={{
-                background: "linear-gradient(135deg, #1ed760, #16b455)",
+                background: "#1ed760",
                 color: "#ffffff",
               }}
             >

@@ -20,8 +20,6 @@ export async function GET(request) {
       );
     }
 
-    console.log("Verifying transaction:", transactionId);
-
     // Step 1: Verify with Flutterwave API
     const response = await fetch(
       `https://api.flutterwave.com/v3/transactions/${transactionId}/verify`,
@@ -35,7 +33,6 @@ export async function GET(request) {
     );
 
     const responseText = await response.text();
-    console.log("Flutterwave response status:", response.status);
 
     let data;
     try {
@@ -51,14 +48,7 @@ export async function GET(request) {
       );
     }
 
-    console.log("Flutterwave verification response:", data);
-
     if (!response.ok) {
-      console.error("Flutterwave verification failed:", {
-        status: response.status,
-        data,
-      });
-
       if (response.status === 401) {
         return NextResponse.json(
           {
@@ -162,8 +152,6 @@ export async function GET(request) {
         { status: 500 }
       );
     }
-
-    console.log("Payment updated successfully:", updatedPayment);
 
     return NextResponse.json({
       success: true,

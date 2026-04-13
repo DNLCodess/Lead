@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
@@ -23,7 +23,8 @@ import {
 } from "lucide-react";
 
 export default function StudentsPage() {
-  const supabase = createClient();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const supabase = useMemo(() => createClient(), []);
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -37,7 +38,7 @@ export default function StudentsPage() {
   }, [searchInput]);
 
   // Fetch students
-  const { data: students, isLoading } = useQuery({
+  const { data: students, isLoading, isError } = useQuery({
     queryKey: ["admin-students", filterStatus, filterAccountType],
     queryFn: async () => {
       let query = supabase
@@ -60,10 +61,10 @@ export default function StudentsPage() {
       }
 
       const { data, error } = await query;
-      console.log("Fetched students:", { count: data?.length, error });
       if (error) throw error;
       return data;
     },
+    staleTime: 60 * 1000,
   });
 
   // Filter students by search query
@@ -108,8 +109,23 @@ export default function StudentsPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="h-12 rounded-xl animate-pulse bg-black-surface" />
-        <div className="h-96 rounded-2xl animate-pulse bg-black-surface" />
+        <div className="h-12 rounded-xl animate-pulse" style={{ background: "var(--color-black-surface)" }} />
+        <div className="h-96 rounded-2xl animate-pulse" style={{ background: "var(--color-black-surface)" }} />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-4">
+        <p className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>Failed to load students</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-5 py-2.5 rounded-xl font-semibold text-sm"
+          style={{ background: "var(--color-green-primary)", color: "#0a0d12" }}
+        >
+          Retry
+        </button>
       </div>
     );
   }
@@ -267,8 +283,7 @@ export default function StudentsPage() {
                       <div
                         className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
                         style={{
-                          background:
-                            "linear-gradient(135deg, #1ed760, #16b455)",
+                          background: "#1ed760",
                         }}
                       >
                         <span className="text-white font-bold text-sm">
@@ -488,7 +503,7 @@ function StudentDetailModal({ student, onClose }) {
               <div
                 className="w-20 h-20 rounded-2xl flex items-center justify-center shrink-0"
                 style={{
-                  background: "linear-gradient(135deg, #1ed760, #16b455)",
+                  background: "#1ed760",
                 }}
               >
                 <span className="text-white font-bold text-3xl">

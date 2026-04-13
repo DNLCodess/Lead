@@ -15,7 +15,7 @@ export default function PendingPaymentsAlert({ userId }) {
   const queryClient = useQueryClient();
 
   // Fetch pending payments — stops polling after MAX_POLL_COUNT attempts
-  const { data: pendingPayments, isLoading } = useQuery({
+  const { data: pendingPayments, isLoading, isError } = useQuery({
     queryKey: ["pending-payments", userId],
     queryFn: async () => {
       const response = await fetch("/api/payment/check-pending");
@@ -75,7 +75,7 @@ export default function PendingPaymentsAlert({ userId }) {
     retryMutation.mutate(txRef);
   };
 
-  if (isLoading || !pendingPayments?.data?.length) {
+  if (isLoading || isError || !pendingPayments?.data?.length) {
     return null;
   }
 
@@ -128,7 +128,7 @@ export default function PendingPaymentsAlert({ userId }) {
                     className="px-4 py-2 rounded-lg font-medium text-sm transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     style={{
                       background:
-                        "linear-gradient(135deg, var(--color-green-primary), var(--color-green-hover))",
+                        "var(--color-green-primary)",
                       color: "#ffffff",
                     }}
                   >
