@@ -26,8 +26,8 @@ export default function ProfileHeader({ profile }) {
         }}
       />
 
-      {/* Mobile: Menu at top right */}
-      <div className="flex items-start justify-between mb-5 md:hidden relative z-10">
+      {/* Mobile: Menu at top right — no z-index here, lets dropdown z-50 paint in the header's stacking context above the main row's z-10 */}
+      <div className="flex items-start justify-between mb-5 md:hidden relative">
         <div className="flex-1" />
         <ProfileMenu profile={profile} />
       </div>
