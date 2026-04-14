@@ -19,6 +19,7 @@ import {
   X,
   Activity,
   ChevronDown,
+  GraduationCap,
 } from "lucide-react";
 
 const navigation = [
@@ -44,6 +45,12 @@ const navigation = [
     name: "Week Content",
     href: "/admin/dashboard/content",
     icon: BookOpen,
+    permission: "canManageContent",
+  },
+  {
+    name: "Exam Scores",
+    href: "/admin/dashboard/scores",
+    icon: GraduationCap,
     permission: "canManageContent",
   },
   {

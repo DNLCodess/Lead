@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ProfileService } from "@/lib/services/profile-service";
+import { supabase } from "@/lib/supabase/client";
 
 export function useUserProfile(userId) {
   return useQuery({
@@ -68,5 +69,47 @@ export function useSaveWeekNotes() {
         variables.weekNumber,
       ]);
     },
+  });
+}
+
+// ─── Exam & Scores hooks ────────────────────────────────────────────────────
+
+// Fetch the exam date for a student's current week (for the reminder banner)
+export function useCurrentWeekExam(weekNumber) {
+  return useQuery({
+    queryKey: ["week-exam", weekNumber],
+    queryFn: async () => {
+      if (!weekNumber) return null;
+      const { data, error } = await supabase
+        .from("week_content")
+        .select("week_number, exam_date, exam_description, exam_link")
+        .eq("week_number", weekNumber)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!weekNumber,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// Fetch all scores for the current student
+export function useMyScores(userId) {
+  return useQuery({
+    queryKey: ["my-scores", userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      const { data, error } = await supabase
+        .from("week_scores")
+        .select(
+          "week_number, score, grade, grade_point, remarks, updated_at",
+        )
+        .eq("user_id", userId)
+        .order("week_number", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!userId,
+    staleTime: 2 * 60 * 1000,
   });
 }

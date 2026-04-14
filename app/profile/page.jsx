@@ -12,9 +12,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import LecturersTab from "@/components/shared/profile/tab/lecturers";
 import OverviewTab from "@/components/shared/profile/tab/overview";
 import CalendarTab from "@/components/shared/profile/tab/calendar";
+import ScoresTab from "@/components/shared/profile/tab/scores";
 import ProfileTabs from "@/components/shared/profile/tabs";
 import ProfileHeader from "@/components/shared/profile/header";
 import PendingPaymentsAlert from "@/components/shared/profile/PendingPaymentsAlert";
+import ExamReminderBanner from "@/components/shared/profile/ExamReminderBanner";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -29,10 +31,7 @@ export default function ProfilePage() {
   // ✅ Sync URL params with store on mount
   useEffect(() => {
     const tabParam = searchParams.get("tab");
-
-    // Valid tabs
-    const validTabs = ["overview", "calendar", "lecturers"];
-
+    const validTabs = ["overview", "calendar", "lecturers", "scores"];
     if (tabParam && validTabs.includes(tabParam)) {
       setActiveTab(tabParam);
     }
@@ -64,8 +63,7 @@ export default function ProfilePage() {
   }, [router]);
 
   // Handle profile update from edit modal
-  const handleProfileUpdate = (updatedProfile) => {
-    // Invalidate and refetch profile query
+  const handleProfileUpdate = () => {
     queryClient.invalidateQueries(["user-profile", userId]);
   };
 
@@ -162,6 +160,9 @@ export default function ProfilePage() {
           {/* 🎯 Pending Payments Alert - Shows if there are stuck payments */}
           {userId && <PendingPaymentsAlert userId={userId} />}
 
+          {/* 📅 Exam Reminder Banner - shows when current week has an upcoming exam */}
+          <ExamReminderBanner currentWeek={profile?.current_week} />
+
           {/* Tabs Navigation */}
           <ProfileTabs />
 
@@ -176,6 +177,7 @@ export default function ProfilePage() {
             {activeTab === "overview" && <OverviewTab profile={profile} />}
             {activeTab === "lecturers" && <LecturersTab />}
             {activeTab === "calendar" && <CalendarTab profile={profile} />}
+            {activeTab === "scores" && <ScoresTab profile={profile} />}
           </motion.div>
         </div>
       </div>

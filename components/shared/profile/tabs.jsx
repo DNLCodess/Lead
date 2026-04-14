@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { useProfileStore } from "@/lib/store/profile-store";
 import { useRouter } from "next/navigation";
-import { Calendar, LayoutDashboard, Users } from "lucide-react";
+import { Calendar, LayoutDashboard, Users, GraduationCap } from "lucide-react";
 
 const tabs = [
   {
@@ -20,6 +20,11 @@ const tabs = [
     id: "lecturers",
     label: "Lecturers",
     icon: Users,
+  },
+  {
+    id: "scores",
+    label: "Scores",
+    icon: GraduationCap,
   },
 ];
 
