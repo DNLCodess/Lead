@@ -21,13 +21,14 @@ import {
   Send,
   Eye,
   EyeOff,
+  CheckCircle,
+  AlertCircle,
 } from "lucide-react";
 
 export default function ContentManagementPage() {
   const supabase = useMemo(() => createClient(), []);
   const queryClient = useQueryClient();
   const [selectedWeek, setSelectedWeek] = useState(1);
-  const [isEditing, setIsEditing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
 
   // Fetch all weeks content
@@ -60,14 +61,11 @@ export default function ContentManagementPage() {
 
       if (error) throw error;
 
-      // Count students per week
-      const stats = data.reduce((acc, payment) => {
+      return data.reduce((acc, payment) => {
         const week = payment.week_number;
         acc[week] = (acc[week] || 0) + 1;
         return acc;
       }, {});
-
-      return stats;
     },
   });
 
@@ -199,12 +197,10 @@ export default function ContentManagementPage() {
       {/* Week Details */}
       {selectedWeekData ? (
         <WeekContentDetail
+          key={selectedWeekData.id}
           weekData={selectedWeekData}
-          isEditing={isEditing}
-          setIsEditing={setIsEditing}
           onUpdate={() => {
             queryClient.invalidateQueries(["admin-weeks-content"]);
-            setIsEditing(false);
           }}
         />
       ) : (
@@ -255,17 +251,25 @@ export default function ContentManagementPage() {
 }
 
 // Week Content Detail Component
-function WeekContentDetail({ weekData, isEditing, setIsEditing, onUpdate }) {
+function WeekContentDetail({ weekData, onUpdate }) {
   const supabase = useMemo(() => createClient(), []);
   const queryClient = useQueryClient();
-  const [formData, setFormData] = useState({
-    title: weekData.title || "",
-    summary: weekData.summary || "",
-    telegram_link: weekData.telegram_link || "",
-    resources: weekData.resources || [],
-    lecturer_id: weekData.lecturer_id || "",
-    is_published: weekData.is_published || false,
+  const [isEditing, setIsEditing] = useState(false);
+  const [saveStatus, setSaveStatus] = useState(null); // null | "success" | "error"
+
+  const buildFormData = (w) => ({
+    title: w.title || "",
+    summary: w.summary || "",
+    telegram_link: w.telegram_link || "",
+    resources: w.resources || [],
+    lecturer_id: w.lecturer_id || "",
+    is_published: w.is_published || false,
+    exam_date: w.exam_date || "",
+    exam_description: w.exam_description || "",
+    exam_link: w.exam_link || "",
   });
+
+  const [formData, setFormData] = useState(() => buildFormData(weekData));
 
   // Fetch lecturers for dropdown
   const { data: lecturers } = useQuery({
@@ -282,24 +286,43 @@ function WeekContentDetail({ weekData, isEditing, setIsEditing, onUpdate }) {
     },
   });
 
-  // Update week mutation
+  // Update week mutation — uses server-side API route (service role key) to bypass RLS
   const updateMutation = useMutation({
     mutationFn: async (data) => {
-      const { error } = await supabase
-        .from("week_content")
-        .update(data)
-        .eq("id", weekData.id);
+      const res = await fetch(`/api/admin/week-content/${weekData.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
 
-      if (error) throw error;
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error || `Request failed (${res.status})`);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries(["admin-weeks-content"]);
+      setSaveStatus("success");
+      setIsEditing(false);
       onUpdate();
+      setTimeout(() => setSaveStatus(null), 3000);
+    },
+    onError: (err) => {
+      console.error("[week-content update]", err);
+      setSaveStatus("error");
+      setTimeout(() => setSaveStatus(null), 4000);
     },
   });
 
   const handleSave = () => {
+    setSaveStatus(null);
     updateMutation.mutate(formData);
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setFormData(buildFormData(weekData));
+    setSaveStatus(null);
   };
 
   const addResource = () => {
@@ -378,17 +401,7 @@ function WeekContentDetail({ weekData, isEditing, setIsEditing, onUpdate }) {
           {isEditing ? (
             <>
               <button
-                onClick={() => {
-                  setIsEditing(false);
-                  setFormData({
-                    title: weekData.title || "",
-                    summary: weekData.summary || "",
-                    telegram_link: weekData.telegram_link || "",
-                    resources: weekData.resources || [],
-                    lecturer_id: weekData.lecturer_id || "",
-                    is_published: weekData.is_published || false,
-                  });
-                }}
+                onClick={handleCancel}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold"
                 style={{
                   background: "var(--color-black-elevated)",
@@ -426,6 +439,29 @@ function WeekContentDetail({ weekData, isEditing, setIsEditing, onUpdate }) {
           )}
         </div>
       </div>
+
+      {/* Save status feedback */}
+      <AnimatePresence>
+        {saveStatus && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="flex items-center gap-2 px-5 py-3 text-sm font-semibold"
+            style={{
+              background: saveStatus === "success" ? "#1ed76015" : "#ef444415",
+              color: saveStatus === "success" ? "#1ed760" : "#ef4444",
+              borderBottom: `1px solid ${saveStatus === "success" ? "#1ed76030" : "#ef444430"}`,
+            }}
+          >
+            {saveStatus === "success" ? (
+              <><CheckCircle className="w-4 h-4" /> Changes saved successfully</>
+            ) : (
+              <><AlertCircle className="w-4 h-4" /> Failed to save — check your connection or permissions</>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Content */}
       <div className="p-6 space-y-6">
@@ -747,6 +783,98 @@ function WeekContentDetail({ weekData, isEditing, setIsEditing, onUpdate }) {
               )}
             </div>
           )}
+        </div>
+
+        {/* Exam Details */}
+        <div
+          className="rounded-xl p-4 space-y-4"
+          style={{ border: "1px solid var(--color-black-border)", background: "var(--color-black-elevated)" }}
+        >
+          <p className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
+            Exam Details
+          </p>
+
+          {/* Exam Date */}
+          <div>
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text-secondary)" }}>
+              Exam Date
+            </label>
+            {isEditing ? (
+              <input
+                type="date"
+                value={formData.exam_date}
+                onChange={(e) => setFormData({ ...formData, exam_date: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl outline-none"
+                style={{
+                  background: "var(--color-black-surface)",
+                  border: "1px solid var(--color-black-border)",
+                  color: "var(--text-primary)",
+                }}
+              />
+            ) : (
+              <p className="text-sm" style={{ color: weekData.exam_date ? "var(--text-primary)" : "var(--text-muted)" }}>
+                {weekData.exam_date ? new Date(weekData.exam_date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "Not set"}
+              </p>
+            )}
+          </div>
+
+          {/* Exam Description */}
+          <div>
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text-secondary)" }}>
+              Exam Description
+            </label>
+            {isEditing ? (
+              <textarea
+                value={formData.exam_description}
+                onChange={(e) => setFormData({ ...formData, exam_description: e.target.value })}
+                rows={3}
+                className="w-full px-4 py-2.5 rounded-xl outline-none resize-none"
+                style={{
+                  background: "var(--color-black-surface)",
+                  border: "1px solid var(--color-black-border)",
+                  color: "var(--text-primary)",
+                }}
+                placeholder="Describe the exam..."
+              />
+            ) : (
+              <p className="text-sm" style={{ color: weekData.exam_description ? "var(--text-secondary)" : "var(--text-muted)", whiteSpace: "pre-wrap" }}>
+                {weekData.exam_description || "Not set"}
+              </p>
+            )}
+          </div>
+
+          {/* Exam Link */}
+          <div>
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text-secondary)" }}>
+              Exam Link
+            </label>
+            {isEditing ? (
+              <input
+                type="url"
+                value={formData.exam_link}
+                onChange={(e) => setFormData({ ...formData, exam_link: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl outline-none"
+                style={{
+                  background: "var(--color-black-surface)",
+                  border: "1px solid var(--color-black-border)",
+                  color: "var(--text-primary)",
+                }}
+                placeholder="https://..."
+              />
+            ) : weekData.exam_link ? (
+              <a
+                href={weekData.exam_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-semibold"
+                style={{ color: "var(--color-green-primary)" }}
+              >
+                {weekData.exam_link}
+              </a>
+            ) : (
+              <p className="text-sm" style={{ color: "var(--text-muted)" }}>Not set</p>
+            )}
+          </div>
         </div>
 
         {/* Published Status */}
